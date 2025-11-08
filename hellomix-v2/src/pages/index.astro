@@ -27,7 +27,7 @@ const displayPlaylists = playlists;
             <rect x="12" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
           </svg>
         </a>
-        <a href="/?shuffle" title="Shuffle" aria-label="Shuffle playlists">
+        <a href="/shuffle" title="Shuffle" aria-label="Shuffle playlists">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.5 4.5L16 7L13.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M6.5 10.5L4 13L6.5 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -49,16 +49,17 @@ const displayPlaylists = playlists;
         const fetchPriority = index < 12 ? 'high' : 'low';
         return (
           <li>
-            <a href={`/?mix=${encodeURIComponent(playlist.name)}`} title={playlist.name}>
+            <a href={`/mix/${encodeURIComponent(playlist.slug)}`} title={playlist.name}>
               <img
                 src={imageUrl}
                 width="400"
                 height="400"
                 alt={playlist.name}
-                loading="lazy"
+                loading={index < 12 ? "eager" : "lazy"}
                 decoding="async"
                 fetchpriority={fetchPriority}
                 class="playlist-image"
+                sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
               />
               {displayName}
             </a>
@@ -205,7 +206,6 @@ const displayPlaylists = playlists;
     padding: 0;
     border: none;
     background: transparent;
-    border-radius: 12px;
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     animation: none;
@@ -570,7 +570,6 @@ const displayPlaylists = playlists;
     justify-content: center;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
     color: #ffffff !important;
     font-size: 20px;
     font-weight: 500;
@@ -634,51 +633,104 @@ const displayPlaylists = playlists;
   }
 </style>
 
-<!-- Export playlist data for client-side use -->
-<script is:inline define:vars={{ playlistsData: JSON.stringify(allPlaylistsData) }}>
-  window.PLAYLISTS_DATA = JSON.parse(playlistsData);
-</script>
-
 <!-- Client-side playlist player script -->
 <script is:inline src="/js/playlist-player.js"></script>
 
-<script is:inline define:vars={{ playlistsData: playlists.map(p => p.name) }}>
+<!-- Client-side routing and navigation -->
+<script is:inline define:vars={{ playlistsData: JSON.stringify(allPlaylistsData) }}>
   (function() {
-    function init() {
-      // Handle shuffle functionality
-      if (new URLSearchParams(window.location.search).has('shuffle')) {
-        var playlists = playlistsData;
-        if (playlists.length > 0) {
-          var random = playlists[Math.floor(Math.random() * playlists.length)];
-          var newUrl = '/?mix=' + encodeURIComponent(random);
+    // Store playlists data globally for routing
+    if (!window.PLAYLISTS_DATA) {
+      window.PLAYLISTS_DATA = JSON.parse(playlistsData);
+    }
+
+    function shufflePlaylist() {
+      if (window.PLAYLISTS_DATA && window.PLAYLISTS_DATA.length > 0) {
+        var random = window.PLAYLISTS_DATA[Math.floor(Math.random() * window.PLAYLISTS_DATA.length)];
+        if (random && random.slug) {
+          var newUrl = '/mix/' + encodeURIComponent(random.slug);
           window.history.pushState({}, '', newUrl);
           if (window.checkAndShowModal) {
             window.checkAndShowModal();
           }
         }
       }
+    }
 
-      // Handle playlist clicks - prevent page refresh and show modal
-      var playlistLinks = document.querySelectorAll('.all li a');
-      for (var i = 0; i < playlistLinks.length; i++) {
-        playlistLinks[i].addEventListener('click', function(event) {
-          event.preventDefault();
+    function init() {
+      // Handle shuffle functionality on page load
+      if (window.location.pathname === '/shuffle') {
+        shufflePlaylist();
+      }
+
+      // Handle all navigation links - prevent page refresh and use client-side routing
+      var allLinks = document.querySelectorAll('a[href]');
+      for (var i = 0; i < allLinks.length; i++) {
+        allLinks[i].addEventListener('click', function(event) {
           var href = this.getAttribute('href');
-          if (href && href.includes('?mix=')) {
-            // Extract playlist name from href
-            var url = new URL(href, window.location.origin);
-            var mixParam = url.searchParams.get('mix');
-            if (mixParam) {
-              // Update URL without refreshing
+
+          // Skip external links and special links
+          if (!href || href.startsWith('http') || href.startsWith('#')) {
+            return;
+          }
+
+          // Handle internal navigation
+          if (href.startsWith('/')) {
+            event.preventDefault();
+
+            // Handle shuffle
+            if (href === '/shuffle') {
+              shufflePlaylist();
+              return;
+            }
+
+            // Handle mix paths
+            if (href.startsWith('/mix/')) {
               window.history.pushState({}, '', href);
-              // Trigger modal display
               if (window.checkAndShowModal) {
                 window.checkAndShowModal();
               }
+              return;
+            }
+
+            // Handle home
+            if (href === '/') {
+              window.history.pushState({}, '', '/');
+              if (window.checkAndShowModal) {
+                window.checkAndShowModal();
+              }
+              return;
             }
           }
         });
       }
+
+      // Update active nav state
+      function updateActiveNav() {
+        var path = window.location.pathname;
+        var navLinks = document.querySelectorAll('nav a');
+        for (var i = 0; i < navLinks.length; i++) {
+          var link = navLinks[i];
+          var href = link.getAttribute('href');
+          // "All" is active only on home page
+          if (href === '/' && path === '/') {
+            link.classList.add('active');
+          } else if (href === '/shuffle' && path === '/shuffle') {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        }
+      }
+
+      // Update active nav on route change
+      updateActiveNav();
+      window.addEventListener('popstate', function() {
+        if (window.checkAndShowModal) {
+          window.checkAndShowModal();
+        }
+        updateActiveNav();
+      });
     }
 
     if (document.readyState === 'loading') {

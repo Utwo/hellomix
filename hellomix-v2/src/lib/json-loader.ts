@@ -65,14 +65,6 @@ export function getAllPlaylists(limit?: number, offset: number = 0): Playlist[] 
   return sorted;
 }
 
-export function searchPlaylists(searchTerm: string): Playlist[] {
-  const playlists = getPlaylistsWithSongs();
-  const term = searchTerm.toLowerCase();
-  return playlists
-    .filter(p => p.name.toLowerCase().includes(term))
-    .sort((a, b) => b.id - a.id);
-}
-
 export function getRandomPlaylist(): Playlist | null {
   const playlists = getPlaylistsWithSongs();
   if (playlists.length === 0) return null;

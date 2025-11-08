@@ -2,6 +2,14 @@
   var player;
   var progressInterval;
 
+  function findPlaylistBySlug(slug) {
+    if (!window.PLAYLISTS_DATA) return null;
+    var decodedSlug = decodeURIComponent(slug);
+    return window.PLAYLISTS_DATA.find(function(p) {
+      return p.slug === decodedSlug;
+    }) || null;
+  }
+
   function findPlaylistByName(name) {
     if (!window.PLAYLISTS_DATA) return null;
     var decodedName = decodeURIComponent(name);
@@ -254,15 +262,16 @@
   }
 
   function checkAndShowModal() {
-    var urlParams = new URLSearchParams(window.location.search);
-    var mixParam = urlParams.get('mix');
+    var path = window.location.pathname;
 
-    if (mixParam) {
-      var playlist = findPlaylistByName(mixParam);
+    // Check for /mix/slug path
+    if (path.startsWith('/mix/')) {
+      var slug = path.substring('/mix/'.length);
+      var playlist = findPlaylistBySlug(slug);
       if (playlist) {
         showPlaylistModal(playlist);
       } else {
-        console.warn('Playlist not found:', mixParam);
+        console.warn('Playlist not found:', slug);
         var pageslide = document.getElementById('pageslide');
         var modalContent = pageslide ? pageslide.querySelector('.modal-content') : null;
 
