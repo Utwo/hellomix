@@ -1,0 +1,51 @@
+/* Global styles - minimal reset and utilities */
+
+/* Icon font for navigation icons (if needed in future) */
+@font-face {
+  font-family: 'mix';
+  src: url('/font/mix.eot');
+  src: url('/font/mix.eot?#iefix') format('embedded-opentype'),
+       url('/font/mix.svg#mix') format('svg'),
+       url('/font/mix.woff') format('woff'),
+       url('/font/mix.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Icon font usage - currently hidden but available if needed */
+[data-icon]:before {
+  font-family: 'mix';
+  content: attr(data-icon);
+  speak: none;
+  font-size: 2em;
+  font-weight: normal;
+  vertical-align: middle;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide icon text on navigation (icons are decorative, text is shown instead) */
+header nav [data-icon]:before {
+  display: none;
+}
+
+/* Basic reset - minimal */
+ul, ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img {
+  border: 0;
+  vertical-align: middle;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:focus {
+  outline: 0;
+}

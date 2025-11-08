@@ -1,0 +1,664 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPlaylistsData, truncatePlaylistName, getPlaylistImageUrl } from '../lib/playlists';
+import logo from '../assets/img/logo.svg';
+
+const { playlists } = getPlaylistsData();
+
+// Get all playlists with songs for client-side use
+import { getPlaylistsWithSongs } from '../lib/csv-loader';
+const allPlaylistsData = getPlaylistsWithSongs();
+
+const displayPlaylists = playlists;
+---
+
+<Layout>
+  <header>
+    <div>
+      <a href="/" class="logo">
+        <img src={logo.src} alt="Hello mix" />
+      </a>
+      <nav>
+        <a href="/" class="active" aria-hidden="true" data-icon="&#xe001;" title="All" tabindex="1" accesskey="a">
+          <i>All</i>
+        </a>
+        <a href="/?shuffle" aria-hidden="true" data-icon="&#xe000;" title="Shuffle" tabindex="2" accesskey="s">
+          <i>Shuffle</i>
+        </a>
+      </nav>
+    </div>
+    <h2># discover, play, play more and share #</h2>
+  </header>
+
+  <section class="all">
+    <ul>
+      {displayPlaylists.map((playlist, index) => {
+        const displayName = truncatePlaylistName(playlist.name);
+        const imageUrl = getPlaylistImageUrl(playlist.name);
+        // First 12 images (above the fold) get high priority, rest get low priority
+        const fetchPriority = index < 12 ? 'high' : 'low';
+        return (
+          <li>
+            <a href={`/?mix=${encodeURIComponent(playlist.name)}`} title={playlist.name}>
+              <img
+                src={imageUrl}
+                width="400"
+                height="400"
+                alt={playlist.name}
+                loading="lazy"
+                decoding="async"
+                fetchpriority={fetchPriority}
+                class="playlist-image"
+              />
+              {displayName}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  </section>
+
+  <!-- Minimal bottom player - always rendered, shown/hidden by JavaScript -->
+  <div id="pageslide" style="display: none;">
+    <div class="modal-content"></div>
+  </div>
+</Layout>
+
+<style>
+  /* Modern, simplified design */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+  }
+
+  header {
+    padding: 2rem 0;
+    margin-bottom: 3rem;
+  }
+
+  header div {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  header .logo {
+    flex-shrink: 0;
+  }
+
+  header .logo img {
+    max-width: 200px;
+    height: auto;
+  }
+
+  header nav {
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    width: auto;
+  }
+
+  header nav a {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+  }
+
+  header h2 {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin: 2rem 0 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    animation: none;
+  }
+
+  section.all {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+  }
+
+  section.all ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  @media (max-width: 1200px) {
+    section.all ul {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    header div {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+
+    header nav {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    section.all ul {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    section.all {
+      padding: 0 1rem 3rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    section.all ul {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+  }
+
+  .all li {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: none;
+  }
+
+  .all li:hover {
+    transform: translateY(-4px);
+  }
+
+  .all li a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .all li img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+  }
+
+  .all li a {
+    padding-top: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.4;
+    text-transform: none;
+  }
+
+  /* Dark/Light theme based on device preferences */
+  @media (prefers-color-scheme: dark) {
+    html {
+      background: #0a0a0a !important;
+    }
+
+    body {
+      color: #e5e5e5 !important;
+      background: #0a0a0a !important;
+    }
+
+    header div {
+      background: transparent !important;
+      border-bottom: none !important;
+    }
+
+    header h2 {
+      color: #888 !important;
+      background: transparent !important;
+    }
+
+    .all li a {
+      color: #e5e5e5 !important;
+    }
+
+    .all li:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    header nav a {
+      color: #ccc !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    header nav a:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: #fff !important;
+    }
+
+    header nav .active {
+      background: #fff007 !important;
+      color: #0a0a0a !important;
+    }
+  }
+
+  @media (prefers-color-scheme: light) {
+    html {
+      background: #ffffff !important;
+    }
+
+    body {
+      color: #1a1a1a !important;
+      background: #ffffff !important;
+    }
+
+    header div {
+      background: transparent !important;
+      border-bottom: none !important;
+    }
+
+    header h2 {
+      color: #666 !important;
+      background: transparent !important;
+    }
+
+    .all li a {
+      color: #1a1a1a !important;
+    }
+
+    .all li:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    header nav a {
+      color: #666 !important;
+      background: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    header nav a:hover {
+      background: rgba(0, 0, 0, 0.08) !important;
+      color: #1a1a1a !important;
+    }
+
+    header nav .active {
+      background: #fff007 !important;
+      color: #1a1a1a !important;
+    }
+  }
+
+  /* Lazy loading styles for playlist images - Pure CSS/HTML approach */
+  .playlist-image {
+    /* Placeholder background while loading - adapts to theme */
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    background-size: 200% 200%;
+    /* Shimmer animation for loading state */
+    animation: shimmer 2s ease-in-out infinite;
+    /* Smooth transition when image appears */
+    transition: opacity 0.4s ease-in-out;
+    object-fit: cover;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .playlist-image {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 255, 255, 0.05) 100%
+      );
+    }
+  }
+
+  /* Shimmer effect animation */
+  @keyframes shimmer {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+
+  /* When image is loaded and visible, stop shimmer and show full opacity */
+  .playlist-image:not([src=""]) {
+    animation: none;
+  }
+
+  /* Ensure images maintain aspect ratio and don't cause layout shift */
+  .all li a img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Optimize image rendering */
+  .playlist-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    will-change: opacity;
+  }
+
+  /* Minimal bottom player bar */
+  #pageslide {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: 80px !important;
+    background: #1a1a1a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    z-index: 999999 !important;
+    color: #ffffff !important;
+    padding: 0 !important;
+    overflow: hidden;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  @media (prefers-color-scheme: light) {
+    #pageslide {
+      background: #f9f9f9 !important;
+      border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+      color: #333 !important;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    #pageslide .player-controls button {
+      background: rgba(0, 0, 0, 0.08) !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      color: #1a1a1a !important;
+    }
+
+    #pageslide .player-controls button:hover {
+      background: rgba(0, 0, 0, 0.12) !important;
+      border-color: rgba(0, 0, 0, 0.18) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    #pageslide .player-controls button.play-pause {
+      background: rgba(0, 0, 0, 0.1) !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    #pageslide .player-controls button.play-pause:hover {
+      background: rgba(0, 0, 0, 0.15) !important;
+      border-color: rgba(0, 0, 0, 0.22) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    #pageslide .close {
+      background: rgba(0, 0, 0, 0.08) !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      color: rgba(0, 0, 0, 0.7) !important;
+    }
+
+    #pageslide .close:hover {
+      color: #1a1a1a !important;
+      background: rgba(0, 0, 0, 0.12) !important;
+      border-color: rgba(0, 0, 0, 0.18) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    #pageslide img#ytplayer {
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+  }
+
+  #pageslide.show {
+    transform: translateY(0) !important;
+  }
+
+  body.modal-open {
+    padding-bottom: 80px !important;
+  }
+
+  /* Minimal content container */
+  #pageslide .modal-content {
+    height: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex !important;
+    align-items: center;
+    gap: 16px;
+    overflow: visible;
+  }
+
+  /* Cover image - minimal style */
+  #pageslide img#ytplayer {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  #pageslide footer {
+    display: none;
+  }
+
+  #pageslide .option {
+    display: none;
+  }
+
+  /* Close button - modern style */
+  #pageslide .close {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    margin-left: auto;
+    flex-shrink: 0;
+    visibility: visible !important;
+    opacity: 1 !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  #pageslide .close:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  #pageslide .close:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  /* Hide YouTube iframe */
+  #pageslide iframe#album {
+    display: none !important;
+  }
+
+  /* Player controls - modern, refined style */
+  #pageslide .player-controls {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    z-index: 10;
+    position: relative;
+  }
+
+  #pageslide .player-controls button {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: #ffffff !important;
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+    flex-shrink: 0;
+    visibility: visible !important;
+    opacity: 1 !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  #pageslide .player-controls button:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  #pageslide .player-controls button:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  #pageslide .player-controls button.play-pause {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+    font-size: 22px;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  #pageslide .player-controls button.play-pause:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Playlist title - hidden, replaced by image */
+  #pageslide h3 {
+    display: none;
+  }
+
+  /* Error state */
+  #pageslide h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    color: #ffffff;
+  }
+
+  #pageslide p {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin: 8px 0;
+  }
+</style>
+
+<!-- Export playlist data for client-side use -->
+<script is:inline define:vars={{ playlistsData: JSON.stringify(allPlaylistsData) }}>
+  window.PLAYLISTS_DATA = JSON.parse(playlistsData);
+</script>
+
+<!-- Client-side playlist player script -->
+<script is:inline src="/js/playlist-player.js"></script>
+
+<script is:inline define:vars={{ playlistsData: playlists.map(p => p.name) }}>
+  (function() {
+    function init() {
+      // Handle shuffle functionality
+      if (new URLSearchParams(window.location.search).has('shuffle')) {
+        var playlists = playlistsData;
+        if (playlists.length > 0) {
+          var random = playlists[Math.floor(Math.random() * playlists.length)];
+          var newUrl = '/?mix=' + encodeURIComponent(random);
+          window.history.pushState({}, '', newUrl);
+          if (window.checkAndShowModal) {
+            window.checkAndShowModal();
+          }
+        }
+      }
+
+      // Handle playlist clicks - prevent page refresh and show modal
+      var playlistLinks = document.querySelectorAll('.all li a');
+      for (var i = 0; i < playlistLinks.length; i++) {
+        playlistLinks[i].addEventListener('click', function(event) {
+          event.preventDefault();
+          var href = this.getAttribute('href');
+          if (href && href.includes('?mix=')) {
+            // Extract playlist name from href
+            var url = new URL(href, window.location.origin);
+            var mixParam = url.searchParams.get('mix');
+            if (mixParam) {
+              // Update URL without refreshing
+              window.history.pushState({}, '', href);
+              // Trigger modal display
+              if (window.checkAndShowModal) {
+                window.checkAndShowModal();
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
