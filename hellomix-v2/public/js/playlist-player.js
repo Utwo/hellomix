@@ -33,7 +33,7 @@
     var html = '';
     if (playlist.songs && playlist.songs.length > 0) {
       html = '<iframe id="album" type="text/html" width="1" height="1" src="' + youtubeUrl + '" frameborder="0" allowfullscreen style="position: absolute; opacity: 0; pointer-events: none;"></iframe>' +
-             '<img id="ytplayer" src="' + albumImageUrl + '" alt="' + playlist.name + '" />' +
+             '<img id="ytplayer" src="' + albumImageUrl + '" alt="' + playlist.name + '" style="width: 60px; height: 60px; min-width: 60px; min-height: 60px; border-radius: 8px; object-fit: contain; background: rgba(0, 0, 0, 0.2); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); display: block; margin: 0; padding: 0;" />' +
              '<div class="player-controls">' +
              '<button class="prev" aria-label="Previous" title="Previous">⏮</button>' +
              '<button class="play-pause" aria-label="Play/Pause" title="Play/Pause">▶</button>' +

@@ -1,4 +1,4 @@
-import { getAllPlaylists} from './csv-loader';
+import { getAllPlaylists} from './json-loader';
 
 export function getPlaylistsData() {
   // Fetch all playlists (no limit)

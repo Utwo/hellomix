@@ -6,7 +6,7 @@ import logo from '../assets/img/logo.svg';
 const { playlists } = getPlaylistsData();
 
 // Get all playlists with songs for client-side use
-import { getPlaylistsWithSongs } from '../lib/csv-loader';
+import { getPlaylistsWithSongs } from '../lib/json-loader';
 const allPlaylistsData = getPlaylistsWithSongs();
 
 const displayPlaylists = playlists;
@@ -19,11 +19,21 @@ const displayPlaylists = playlists;
         <img src={logo.src} alt="Hello mix" />
       </a>
       <nav>
-        <a href="/" class="active" aria-hidden="true" data-icon="&#xe001;" title="All" tabindex="1" accesskey="a">
-          <i>All</i>
+        <a href="/" class="active" title="All" aria-label="All playlists">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <rect x="12" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <rect x="2" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <rect x="12" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          </svg>
         </a>
-        <a href="/?shuffle" aria-hidden="true" data-icon="&#xe000;" title="Shuffle" tabindex="2" accesskey="s">
-          <i>Shuffle</i>
+        <a href="/?shuffle" title="Shuffle" aria-label="Shuffle playlists">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.5 4.5L16 7L13.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6.5 10.5L4 13L6.5 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 7H11.5C9.567 7 8 8.567 8 10.5C8 12.433 9.567 14 11.5 14H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M4 6H8.5C10.433 6 12 7.567 12 9.5C12 11.433 10.433 13 8.5 13H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
         </a>
       </nav>
     </div>
@@ -107,13 +117,24 @@ const displayPlaylists = playlists;
   }
 
   header nav a {
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem;
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 500;
     transition: all 0.2s ease;
     border: none;
     text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+  }
+
+  header nav a svg {
+    width: 20px;
+    height: 20px;
+    display: block;
   }
 
   header h2 {
@@ -433,6 +454,7 @@ const displayPlaylists = playlists;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
+    #pageslide .modal-content img#ytplayer,
     #pageslide img#ytplayer {
       background: rgba(0, 0, 0, 0.05) !important;
     }
@@ -459,16 +481,20 @@ const displayPlaylists = playlists;
   }
 
   /* Cover image - minimal style */
+  #pageslide .modal-content img#ytplayer,
   #pageslide img#ytplayer {
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
-    min-height: 60px;
-    border-radius: 8px;
-    object-fit: contain;
-    background: rgba(0, 0, 0, 0.2);
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    min-height: 60px !important;
+    border-radius: 8px !important;
+    object-fit: contain !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   #pageslide footer {
