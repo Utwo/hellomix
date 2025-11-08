@@ -15,7 +15,7 @@
     var firstVideo = playlist.songs[0].trim();
     var remainingVideos = playlist.songs.slice(1).map(function(s) {
       return s.trim();
-    }).join(',');
+    }).filter(function(s) { return s.length > 0; }).join(',');
     var playlistParam = remainingVideos ? '&playlist=' + remainingVideos : '';
     return 'https://www.youtube.com/embed/' + firstVideo + '?enablejsapi=1&version=3&wmode=transparent&autoplay=1' + playlistParam;
   }
@@ -64,67 +64,64 @@
       });
     }
 
-    // Setup player control buttons
-    var prevBtn = pageslide.querySelector('.player-controls .prev');
-    var playPauseBtn = pageslide.querySelector('.player-controls .play-pause');
-    var nextBtn = pageslide.querySelector('.player-controls .next');
-
     // Store playlist reference for controls
     window.currentPlaylist = playlist;
     window.currentVideoIndex = 0;
 
-    if (prevBtn) {
-      prevBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (player && window.currentPlaylist && window.currentPlaylist.songs) {
-          try {
-            if (window.currentVideoIndex > 0) {
+    // Setup player control buttons
+    var controls = pageslide.querySelector('.player-controls');
+    if (controls) {
+      var prevBtn = controls.querySelector('.prev');
+      var playPauseBtn = controls.querySelector('.play-pause');
+      var nextBtn = controls.querySelector('.next');
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (player && window.currentPlaylist?.songs && window.currentVideoIndex > 0) {
+            try {
               window.currentVideoIndex--;
-              var videoId = window.currentPlaylist.songs[window.currentVideoIndex].trim();
-              player.loadVideoById(videoId);
+              player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
+            } catch(e) {
+              console.error('Error playing previous:', e);
             }
-          } catch(e) {
-            console.error('Error playing previous:', e);
           }
-        }
-      });
-    }
+        });
+      }
 
-    if (playPauseBtn) {
-      playPauseBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (player) {
-          try {
-            var state = player.getPlayerState();
-            if (state === YT.PlayerState.PLAYING) {
-              player.pauseVideo();
-              playPauseBtn.textContent = '▶';
-            } else {
-              player.playVideo();
-              playPauseBtn.textContent = '⏸';
+      if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (player) {
+            try {
+              var state = player.getPlayerState();
+              if (state === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+                playPauseBtn.textContent = '▶';
+              } else {
+                player.playVideo();
+                playPauseBtn.textContent = '⏸';
+              }
+            } catch(e) {
+              console.error('Error toggling play/pause:', e);
             }
-          } catch(e) {
-            console.error('Error toggling play/pause:', e);
           }
-        }
-      });
-    }
+        });
+      }
 
-    if (nextBtn) {
-      nextBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        if (player && window.currentPlaylist && window.currentPlaylist.songs) {
-          try {
-            if (window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (player && window.currentPlaylist?.songs && window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
+            try {
               window.currentVideoIndex++;
-              var videoId = window.currentPlaylist.songs[window.currentVideoIndex].trim();
-              player.loadVideoById(videoId);
+              player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
+            } catch(e) {
+              console.error('Error playing next:', e);
             }
-          } catch(e) {
-            console.error('Error playing next:', e);
           }
-        }
-      });
+        });
+      }
     }
 
     // Close on ESC key
@@ -194,22 +191,15 @@
     player.addEventListener('onStateChange', function(event) {
       var playPauseBtn = document.querySelector('.player-controls .play-pause');
       if (playPauseBtn) {
-        if (event.data === YT.PlayerState.PLAYING) {
-          playPauseBtn.textContent = '⏸';
-        } else {
-          playPauseBtn.textContent = '▶';
-        }
+        playPauseBtn.textContent = event.data === YT.PlayerState.PLAYING ? '⏸' : '▶';
       }
 
-      // Track when video ends and auto-play next
-      if (event.data === YT.PlayerState.ENDED) {
-        if (window.currentPlaylist && window.currentPlaylist.songs) {
-          if (window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
-            window.currentVideoIndex++;
-            var videoId = window.currentPlaylist.songs[window.currentVideoIndex].trim();
-            player.loadVideoById(videoId);
-            player.playVideo();
-          }
+      // Auto-play next when video ends
+      if (event.data === YT.PlayerState.ENDED && window.currentPlaylist?.songs) {
+        if (window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
+          window.currentVideoIndex++;
+          player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
+          player.playVideo();
         }
       }
     });

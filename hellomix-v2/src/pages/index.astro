@@ -4,11 +4,7 @@ import { getPlaylistsData, truncatePlaylistName, getPlaylistImageUrl, getPlaylis
 import logo from '../assets/img/logo.svg';
 
 const { playlists } = getPlaylistsData();
-
-// Get all playlists with songs for client-side use
 const allPlaylistsData = getPlaylistsWithSongs();
-
-const displayPlaylists = playlists;
 ---
 
 <Layout>
@@ -41,7 +37,7 @@ const displayPlaylists = playlists;
 
   <section class="all">
     <ul>
-      {displayPlaylists.map((playlist, index) => {
+      {playlists.map((playlist, index) => {
         const displayName = truncatePlaylistName(playlist.name);
         const imageUrl = getPlaylistImageUrl(playlist.name);
         // First 12 images (above the fold) get high priority, rest get low priority
@@ -646,39 +642,26 @@ const displayPlaylists = playlists;
   (function() {
     function init() {
       // Handle shuffle functionality
-      if (new URLSearchParams(window.location.search).has('shuffle')) {
-        var playlists = playlistsData;
-        if (playlists.length > 0) {
-          var random = playlists[Math.floor(Math.random() * playlists.length)];
-          var newUrl = '/?mix=' + encodeURIComponent(random);
-          window.history.pushState({}, '', newUrl);
-          if (window.checkAndShowModal) {
-            window.checkAndShowModal();
-          }
-        }
+      if (new URLSearchParams(window.location.search).has('shuffle') && playlistsData.length > 0) {
+        var random = playlistsData[Math.floor(Math.random() * playlistsData.length)];
+        window.history.pushState({}, '', '/?mix=' + encodeURIComponent(random));
+        if (window.checkAndShowModal) window.checkAndShowModal();
       }
 
       // Handle playlist clicks - prevent page refresh and show modal
-      var playlistLinks = document.querySelectorAll('.all li a');
-      for (var i = 0; i < playlistLinks.length; i++) {
-        playlistLinks[i].addEventListener('click', function(event) {
+      document.querySelectorAll('.all li a').forEach(function(link) {
+        link.addEventListener('click', function(event) {
           event.preventDefault();
           var href = this.getAttribute('href');
           if (href && href.includes('?mix=')) {
-            // Extract playlist name from href
-            var url = new URL(href, window.location.origin);
-            var mixParam = url.searchParams.get('mix');
+            var mixParam = new URL(href, window.location.origin).searchParams.get('mix');
             if (mixParam) {
-              // Update URL without refreshing
               window.history.pushState({}, '', href);
-              // Trigger modal display
-              if (window.checkAndShowModal) {
-                window.checkAndShowModal();
-              }
+              if (window.checkAndShowModal) window.checkAndShowModal();
             }
           }
         });
-      }
+      });
     }
 
     if (document.readyState === 'loading') {

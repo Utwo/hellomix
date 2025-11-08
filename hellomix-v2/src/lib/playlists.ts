@@ -17,7 +17,7 @@ interface PlaylistJSON {
   songs: Array<{ url: string }>;
 }
 
-function loadPlaylistsFromJSON(): Playlist[] {
+export function getPlaylistsWithSongs(): Playlist[] {
   const playlistsDir = join(process.cwd(), 'playlists');
   const files = readdirSync(playlistsDir).filter(f => f.endsWith('.json'));
 
@@ -34,7 +34,6 @@ function loadPlaylistsFromJSON(): Playlist[] {
         .map(song => song.url.trim())
         .filter(url => url.length > 0);
 
-      // Convert JSON format to Playlist format
       playlists.push({
         id: json.id,
         name: json.name,
@@ -47,38 +46,18 @@ function loadPlaylistsFromJSON(): Playlist[] {
     }
   }
 
-  return playlists;
-}
-
-export function getPlaylistsWithSongs(): Playlist[] {
-  return loadPlaylistsFromJSON();
-}
-
-function getAllPlaylists(limit?: number, offset: number = 0): Playlist[] {
-  const playlists = getPlaylistsWithSongs();
   // Sort by ID descending (newest first)
-  const sorted = playlists.sort((a, b) => b.id - a.id);
-
-  if (limit) {
-    return sorted.slice(offset, offset + limit);
-  }
-  return sorted;
+  return playlists.sort((a, b) => b.id - a.id);
 }
 
 export function getPlaylistsData() {
-  // Fetch all playlists (no limit)
-  const playlists = getAllPlaylists();
-
   return {
-    playlists,
+    playlists: getPlaylistsWithSongs(),
   };
 }
 
 export function truncatePlaylistName(name: string, maxLength: number = 18): string {
-  if (name.length > maxLength) {
-    return name.substring(0, maxLength) + '...';
-  }
-  return name;
+  return name.length > maxLength ? name.substring(0, maxLength) + '...' : name;
 }
 
 export function getPlaylistImageUrl(playlistName: string): string {
