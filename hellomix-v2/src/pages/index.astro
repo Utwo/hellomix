@@ -1,12 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getPlaylistsData, truncatePlaylistName, getPlaylistImageUrl } from '../lib/playlists';
+import { getPlaylistsData, truncatePlaylistName, getPlaylistImageUrl, getPlaylistsWithSongs } from '../lib/playlists';
 import logo from '../assets/img/logo.svg';
 
 const { playlists } = getPlaylistsData();
 
 // Get all playlists with songs for client-side use
-import { getPlaylistsWithSongs } from '../lib/json-loader';
 const allPlaylistsData = getPlaylistsWithSongs();
 
 const displayPlaylists = playlists;
