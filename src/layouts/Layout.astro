@@ -1,18 +1,21 @@
 ---
-import '../styles/global.css';
-import logo from '../assets/img/logo.svg';
+import "../styles/global.css";
+import logo from "../assets/img/logo.svg";
 
 interface Props {
   title?: string;
   description?: string;
 }
 
-const { title = "Hello mix", description = "# discover, play, play more and share #" } = Astro.props;
+const {
+  title = "Hello mix",
+  description = "# discover, play, play more and share #",
+} = Astro.props;
 
 // Determine active page based on current URL
 const currentPath = Astro.url.pathname;
-const isHomePage = currentPath === '/';
-const isAboutPage = currentPath === '/about';
+const isHomePage = currentPath === "/";
+const isAboutPage = currentPath === "/about";
 ---
 
 <!doctype html>
@@ -27,7 +30,6 @@ const isAboutPage = currentPath === '/about';
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="dns-prefetch" href="https://www.youtube.com/iframe_api" />
-    <script is:inline src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script is:inline src="/js/piecon.js"></script>
   </head>
   <body>
@@ -37,7 +39,12 @@ const isAboutPage = currentPath === '/about';
           <img src={logo.src} alt="Hello mix" />
         </a>
         <nav>
-          <a href="/" class={isHomePage ? "active" : ""} title="All" aria-label="All playlists">
+          <a
+            href="/"
+            class={isHomePage ? "active" : ""}
+            title="All"
+            aria-label="All playlists"
+          >
             <svg
               width="20"
               height="20"
@@ -115,7 +122,12 @@ const isAboutPage = currentPath === '/about';
                 stroke-linecap="round"></path>
             </svg>
           </a>
-          <a href="/about" class={isAboutPage ? "active" : ""} title="About" aria-label="About">
+          <a
+            href="/about"
+            class={isAboutPage ? "active" : ""}
+            title="About"
+            aria-label="About"
+          >
             <svg
               width="20"
               height="20"

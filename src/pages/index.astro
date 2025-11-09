@@ -10,19 +10,17 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
     <ul>
       {
         playlists.map((playlist, index) => {
-          // First 12 images (above the fold) get high priority, rest get low priority
-          const fetchPriority = index < 12 ? "high" : "low";
           return (
             <li>
               <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
                 <img
+                  loading={index < 12 ? "eager" : "lazy"}
                   src={`/albums/${playlist.slug}.webp`}
                   width="400"
                   height="400"
                   alt={playlist.name}
-                  loading={index < 12 ? "eager" : "lazy"}
                   decoding="async"
-                  fetchpriority={fetchPriority}
+                  fetchpriority={index < 12 ? "high" : "low"}
                   class="playlist-image"
                   sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
                 />
@@ -216,7 +214,12 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
 <!-- Client-side playlist player script -->
 <script is:inline src="/js/playlist-player.js"></script>
 
-<script is:inline define:vars={{ playlistsData: playlists.map((p) => p.name) }}>
+<script
+  is:inline
+  define:vars={{
+    playlistsData: playlists.map((p) => ({ name: p.name, slug: p.slug })),
+  }}
+>
   (function () {
     function init() {
       // Handle shuffle functionality
@@ -224,10 +227,34 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
         new URLSearchParams(window.location.search).has("shuffle") &&
         playlistsData.length > 0
       ) {
-        var random =
+        var randomPlaylist =
           playlistsData[Math.floor(Math.random() * playlistsData.length)];
-        window.history.pushState({}, "", "/?mix=" + encodeURIComponent(random));
-        if (window.checkAndShowModal) window.checkAndShowModal();
+        window.history.pushState(
+          {},
+          "",
+          "/?mix=" + encodeURIComponent(randomPlaylist.slug)
+        );
+        if (window.checkAndShowModal)
+          window.checkAndShowModal(randomPlaylist.slug);
+      }
+
+      // Handle shuffle button click - prevent page refresh
+      var shuffleLink = document.querySelector('header nav a[href*="shuffle"]');
+      if (shuffleLink) {
+        shuffleLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          if (playlistsData.length > 0) {
+            var randomPlaylist =
+              playlistsData[Math.floor(Math.random() * playlistsData.length)];
+            window.history.pushState(
+              {},
+              "",
+              "/?mix=" + encodeURIComponent(randomPlaylist.slug)
+            );
+            if (window.checkAndShowModal)
+              window.checkAndShowModal(randomPlaylist.slug);
+          }
+        });
       }
 
       // Handle playlist clicks - prevent page refresh and show modal
