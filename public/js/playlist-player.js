@@ -167,7 +167,7 @@
 
     const hasSongs = playlist.songs?.length > 0;
     const youtubeUrl = buildYouTubeUrl(playlist);
-    const albumImageUrl = `/albums/${encodeURIComponent(playlist.name)}.webp`;
+    const albumImageUrl = `/albums/${playlist.slug}.webp`;
 
     const content = hasSongs
       ? `<iframe id="album" type="text/html" width="1" height="1" src="${youtubeUrl}" frameborder="0" allowfullscreen></iframe>

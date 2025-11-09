@@ -115,7 +115,7 @@ const playlistNameToSlug = allPlaylistsJson.playlists.reduce(
             <li>
               <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
                 <img
-                  src={`/albums/${encodeURIComponent(playlist.name)}.webp`}
+                  src={`/albums/${playlist.slug}.webp`}
                   width="400"
                   height="400"
                   alt={playlist.name}
