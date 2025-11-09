@@ -28,7 +28,7 @@
 
     var youtubeUrl = buildYouTubeUrl(playlist);
 
-    var albumImageUrl = '/album-big/' + encodeURIComponent(playlist.name) + '.jpg';
+    var albumImageUrl = '/albums/' + encodeURIComponent(playlist.name) + '.webp';
 
     var html = '';
     if (playlist.songs && playlist.songs.length > 0) {
