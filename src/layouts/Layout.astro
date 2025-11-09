@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import logo from '../assets/img/logo.svg';
 
 interface Props {
   title?: string;
@@ -7,6 +8,11 @@ interface Props {
 }
 
 const { title = "Hello mix", description = "# discover, play, play more and share #" } = Astro.props;
+
+// Determine active page based on current URL
+const currentPath = Astro.url.pathname;
+const isHomePage = currentPath === '/';
+const isAboutPage = currentPath === '/about';
 ---
 
 <!doctype html>
@@ -25,6 +31,279 @@ const { title = "Hello mix", description = "# discover, play, play more and shar
     <script is:inline src="/js/piecon.js"></script>
   </head>
   <body>
+    <header>
+      <div>
+        <a href="/" class="logo">
+          <img src={logo.src} alt="Hello mix" />
+        </a>
+        <nav>
+          <a href="/" class={isHomePage ? "active" : ""} title="All" aria-label="All playlists">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="2"
+                y="2"
+                width="6"
+                height="6"
+                rx="1"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"></rect>
+              <rect
+                x="12"
+                y="2"
+                width="6"
+                height="6"
+                rx="1"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"></rect>
+              <rect
+                x="2"
+                y="12"
+                width="6"
+                height="6"
+                rx="1"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"></rect>
+              <rect
+                x="12"
+                y="12"
+                width="6"
+                height="6"
+                rx="1"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"></rect>
+            </svg>
+          </a>
+          <a href="/?shuffle" title="Shuffle" aria-label="Shuffle playlists">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M13.5 4.5L16 7L13.5 9.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+              <path
+                d="M6.5 10.5L4 13L6.5 15.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+              <path
+                d="M16 7H11.5C9.567 7 8 8.567 8 10.5C8 12.433 9.567 14 11.5 14H16"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"></path>
+              <path
+                d="M4 6H8.5C10.433 6 12 7.567 12 9.5C12 11.433 10.433 13 8.5 13H4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"></path>
+            </svg>
+          </a>
+          <a href="/about" class={isAboutPage ? "active" : ""} title="About" aria-label="About">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="10"
+                cy="10"
+                r="8"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"></circle>
+              <path
+                d="M10 6V10"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"></path>
+              <circle cx="10" cy="13" r="1" fill="currentColor"></circle>
+            </svg>
+          </a>
+        </nav>
+      </div>
+      <h2># discover, play, play more and share #</h2>
+    </header>
     <slot />
   </body>
 </html>
+
+<style>
+  /* Modern, simplified design */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+  }
+
+  header {
+    padding: 2rem 0;
+    margin-bottom: 3rem;
+  }
+
+  header div {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  header .logo {
+    flex-shrink: 0;
+  }
+
+  header .logo img {
+    max-width: 200px;
+    height: auto;
+  }
+
+  header nav {
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    width: auto;
+  }
+
+  header nav a {
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+  }
+
+  header nav a svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+
+  header h2 {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin: 2rem 0 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    animation: none;
+  }
+
+  @media (max-width: 768px) {
+    header div {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+
+    header nav {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
+  /* Dark/Light theme based on device preferences */
+  @media (prefers-color-scheme: dark) {
+    html {
+      background: #0a0a0a !important;
+    }
+
+    body {
+      color: #e5e5e5 !important;
+      background: #0a0a0a !important;
+    }
+
+    header div {
+      background: transparent !important;
+      border-bottom: none !important;
+    }
+
+    header h2 {
+      color: #888 !important;
+      background: transparent !important;
+    }
+
+    header nav a {
+      color: #ccc !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    header nav a:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: #fff !important;
+    }
+
+    header nav .active {
+      background: #fff007 !important;
+      color: #0a0a0a !important;
+    }
+  }
+
+  @media (prefers-color-scheme: light) {
+    html {
+      background: #ffffff !important;
+    }
+
+    body {
+      color: #1a1a1a !important;
+      background: #ffffff !important;
+    }
+
+    header div {
+      background: transparent !important;
+      border-bottom: none !important;
+    }
+
+    header h2 {
+      color: #666 !important;
+      background: transparent !important;
+    }
+
+    header nav a {
+      color: #666 !important;
+      background: rgba(0, 0, 0, 0.04) !important;
+    }
+
+    header nav a:hover {
+      background: rgba(0, 0, 0, 0.08) !important;
+      color: #1a1a1a !important;
+    }
+
+    header nav .active {
+      background: #fff007 !important;
+      color: #1a1a1a !important;
+    }
+  }
+</style>
