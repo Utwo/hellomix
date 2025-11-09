@@ -6,12 +6,20 @@
   async function fetchPlaylistBySlug(slug) {
     if (!slug) return null;
 
+    // Clean the slug - remove any leading/trailing whitespace
+    const cleanSlug = slug.trim();
+    if (!cleanSlug) return null;
+
     try {
-      const response = await fetch(
-        `/playlists/${encodeURIComponent(slug)}.json`
-      );
+      const url = `/playlists/${encodeURIComponent(cleanSlug)}.json`;
+      const response = await fetch(url);
       if (!response.ok) {
-        console.warn("Failed to fetch playlist:", slug);
+        console.warn(
+          "Failed to fetch playlist:",
+          cleanSlug,
+          "Status:",
+          response.status
+        );
         return null;
       }
       const playlistData = await response.json();
@@ -21,16 +29,9 @@
         songs: playlistData.songs?.map((song) => song.url) || [],
       };
     } catch (error) {
-      console.error("Error fetching playlist:", error);
+      console.error("Error fetching playlist:", cleanSlug, error);
       return null;
     }
-  }
-
-  async function findPlaylistByName(name) {
-    if (!window.PLAYLIST_NAME_TO_SLUG) return null;
-    const slug =
-      window.PLAYLIST_NAME_TO_SLUG[decodeURIComponent(name).toLowerCase()];
-    return slug ? await fetchPlaylistBySlug(slug) : null;
   }
 
   function buildYouTubeUrl(playlist) {
@@ -299,6 +300,16 @@
   }
 
   async function checkAndShowModal(slug) {
+    // Ensure modal element exists
+    const { pageslide } = getModalElements();
+    if (!pageslide) {
+      console.warn("Modal element not found, retrying...");
+      // Retry after a short delay if element doesn't exist yet
+      setTimeout(() => checkAndShowModal(slug), 100);
+      return;
+    }
+
+    // If slug is provided directly, use it
     if (slug) {
       const playlist = await fetchPlaylistBySlug(slug);
       if (playlist) {
@@ -310,13 +321,20 @@
       return;
     }
 
+    // Otherwise, read from URL
     const mixParam = new URLSearchParams(window.location.search).get("mix");
     if (mixParam) {
-      const playlist = await findPlaylistByName(mixParam);
+      // URLSearchParams.get() already decodes the value, but trim just in case
+      const cleanSlug = mixParam.trim();
+      if (!cleanSlug) {
+        hideModal();
+        return;
+      }
+      const playlist = await fetchPlaylistBySlug(cleanSlug);
       if (playlist) {
         showPlaylistModal(playlist);
       } else {
-        console.warn("Playlist not found:", mixParam);
+        console.warn("Playlist not found for mix param:", cleanSlug);
         showPlaylistNotFound();
       }
     } else {
@@ -331,10 +349,15 @@
   }
 
   // Initialize on page load
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", checkAndShowModal);
-  } else {
+  function initOnLoad() {
     checkAndShowModal();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initOnLoad);
+  } else {
+    // DOM already ready, but wait a tick to ensure all scripts are loaded
+    setTimeout(initOnLoad, 0);
   }
 
   // Handle browser back/forward buttons
