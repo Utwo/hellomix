@@ -1,10 +1,18 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { getPlaylistsData, truncatePlaylistName, getPlaylistImageUrl, getPlaylistsWithSongs } from '../lib/playlists';
-import logo from '../assets/img/logo.svg';
+import Layout from "../layouts/Layout.astro";
+import logo from "../assets/img/logo.svg";
+import allPlaylistsJson from "../all-playlists.json";
 
-const { playlists } = getPlaylistsData();
-const allPlaylistsData = getPlaylistsWithSongs();
+const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
+
+// For client-side use, create a minimal name-to-slug mapping for fetching playlists
+const playlistNameToSlug = allPlaylistsJson.playlists.reduce(
+  (acc: Record<string, string>, playlist) => {
+    acc[playlist.name.toLowerCase()] = playlist.slug;
+    return acc;
+  },
+  {} as Record<string, string>
+);
 ---
 
 <Layout>
@@ -15,19 +23,81 @@ const allPlaylistsData = getPlaylistsWithSongs();
       </a>
       <nav>
         <a href="/" class="active" title="All" aria-label="All playlists">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
-            <rect x="12" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
-            <rect x="2" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
-            <rect x="12" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="2"
+              y="2"
+              width="6"
+              height="6"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"></rect>
+            <rect
+              x="12"
+              y="2"
+              width="6"
+              height="6"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"></rect>
+            <rect
+              x="2"
+              y="12"
+              width="6"
+              height="6"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"></rect>
+            <rect
+              x="12"
+              y="12"
+              width="6"
+              height="6"
+              rx="1"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"></rect>
           </svg>
         </a>
         <a href="/?shuffle" title="Shuffle" aria-label="Shuffle playlists">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.5 4.5L16 7L13.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M6.5 10.5L4 13L6.5 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 7H11.5C9.567 7 8 8.567 8 10.5C8 12.433 9.567 14 11.5 14H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M4 6H8.5C10.433 6 12 7.567 12 9.5C12 11.433 10.433 13 8.5 13H4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13.5 4.5L16 7L13.5 9.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+            <path
+              d="M6.5 10.5L4 13L6.5 15.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+            <path
+              d="M16 7H11.5C9.567 7 8 8.567 8 10.5C8 12.433 9.567 14 11.5 14H16"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"></path>
+            <path
+              d="M4 6H8.5C10.433 6 12 7.567 12 9.5C12 11.433 10.433 13 8.5 13H4"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"></path>
           </svg>
         </a>
       </nav>
@@ -37,30 +107,30 @@ const allPlaylistsData = getPlaylistsWithSongs();
 
   <section class="all">
     <ul>
-      {playlists.map((playlist, index) => {
-        const displayName = truncatePlaylistName(playlist.name);
-        const imageUrl = getPlaylistImageUrl(playlist.name);
-        // First 12 images (above the fold) get high priority, rest get low priority
-        const fetchPriority = index < 12 ? 'high' : 'low';
-        return (
-          <li>
-            <a href={`/?mix=${encodeURIComponent(playlist.name)}`} title={playlist.name}>
-              <img
-                src={imageUrl}
-                width="400"
-                height="400"
-                alt={playlist.name}
-                loading={index < 12 ? "eager" : "lazy"}
-                decoding="async"
-                fetchpriority={fetchPriority}
-                class="playlist-image"
-                sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
-              />
-              {displayName}
-            </a>
-          </li>
-        );
-      })}
+      {
+        playlists.map((playlist, index) => {
+          // First 12 images (above the fold) get high priority, rest get low priority
+          const fetchPriority = index < 12 ? "high" : "low";
+          return (
+            <li>
+              <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
+                <img
+                  src={`/albums/${encodeURIComponent(playlist.name)}.webp`}
+                  width="400"
+                  height="400"
+                  alt={playlist.name}
+                  loading={index < 12 ? "eager" : "lazy"}
+                  decoding="async"
+                  fetchpriority={fetchPriority}
+                  class="playlist-image"
+                  sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
+                />
+                <span class="playlist-name">{playlist.name}</span>
+              </a>
+            </li>
+          );
+        })
+      }
     </ul>
   </section>
 
@@ -77,7 +147,8 @@ const allPlaylistsData = getPlaylistsWithSongs();
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
   }
 
@@ -203,7 +274,9 @@ const allPlaylistsData = getPlaylistsWithSongs();
     background: transparent;
     border-radius: 12px;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     animation: none;
   }
 
@@ -231,9 +304,15 @@ const allPlaylistsData = getPlaylistsWithSongs();
     font-size: 0.95rem;
     font-weight: 500;
     text-align: left;
-    white-space: normal;
     line-height: 1.4;
     text-transform: none;
+  }
+
+  .all li a .playlist-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Dark/Light theme based on device preferences */
@@ -630,42 +709,44 @@ const allPlaylistsData = getPlaylistsWithSongs();
   }
 </style>
 
-<!-- Export playlist data for client-side use -->
-<script is:inline define:vars={{ playlistsData: JSON.stringify(allPlaylistsData) }}>
-  window.PLAYLISTS_DATA = JSON.parse(playlistsData);
-</script>
-
 <!-- Client-side playlist player script -->
 <script is:inline src="/js/playlist-player.js"></script>
 
-<script is:inline define:vars={{ playlistsData: playlists.map(p => p.name) }}>
-  (function() {
+<script is:inline define:vars={{ playlistsData: playlists.map((p) => p.name) }}>
+  (function () {
     function init() {
       // Handle shuffle functionality
-      if (new URLSearchParams(window.location.search).has('shuffle') && playlistsData.length > 0) {
-        var random = playlistsData[Math.floor(Math.random() * playlistsData.length)];
-        window.history.pushState({}, '', '/?mix=' + encodeURIComponent(random));
+      if (
+        new URLSearchParams(window.location.search).has("shuffle") &&
+        playlistsData.length > 0
+      ) {
+        var random =
+          playlistsData[Math.floor(Math.random() * playlistsData.length)];
+        window.history.pushState({}, "", "/?mix=" + encodeURIComponent(random));
         if (window.checkAndShowModal) window.checkAndShowModal();
       }
 
       // Handle playlist clicks - prevent page refresh and show modal
-      document.querySelectorAll('.all li a').forEach(function(link) {
-        link.addEventListener('click', function(event) {
+      document.querySelectorAll(".all li a").forEach(function (link) {
+        link.addEventListener("click", function (event) {
           event.preventDefault();
-          var href = this.getAttribute('href');
-          if (href && href.includes('?mix=')) {
-            var mixParam = new URL(href, window.location.origin).searchParams.get('mix');
+          var href = this.getAttribute("href");
+          if (href && href.includes("?mix=")) {
+            var mixParam = new URL(
+              href,
+              window.location.origin
+            ).searchParams.get("mix");
             if (mixParam) {
-              window.history.pushState({}, '', href);
-              if (window.checkAndShowModal) window.checkAndShowModal();
+              window.history.pushState({}, "", href);
+              if (window.checkAndShowModal) window.checkAndShowModal(mixParam);
             }
           }
         });
       });
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
     } else {
       init();
     }

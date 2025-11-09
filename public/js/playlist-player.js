@@ -1,294 +1,344 @@
-(function() {
-  var player;
-  var progressInterval;
+(function () {
+  let player;
+  let progressInterval;
+  let escHandler = null;
 
-  function findPlaylistByName(name) {
-    if (!window.PLAYLISTS_DATA) return null;
-    var decodedName = decodeURIComponent(name);
-    return window.PLAYLISTS_DATA.find(function(p) {
-      return p.name.toLowerCase() === decodedName.toLowerCase();
-    }) || null;
+  async function fetchPlaylistBySlug(slug) {
+    if (!slug) return null;
+
+    try {
+      const response = await fetch(
+        `/playlists/${encodeURIComponent(slug)}.json`
+      );
+      if (!response.ok) {
+        console.warn("Failed to fetch playlist:", slug);
+        return null;
+      }
+      const playlistData = await response.json();
+      return {
+        name: playlistData.name,
+        slug: playlistData.slug,
+        songs: playlistData.songs?.map((song) => song.url) || [],
+      };
+    } catch (error) {
+      console.error("Error fetching playlist:", error);
+      return null;
+    }
+  }
+
+  async function findPlaylistByName(name) {
+    if (!window.PLAYLIST_NAME_TO_SLUG) return null;
+    const slug =
+      window.PLAYLIST_NAME_TO_SLUG[decodeURIComponent(name).toLowerCase()];
+    return slug ? await fetchPlaylistBySlug(slug) : null;
   }
 
   function buildYouTubeUrl(playlist) {
-    if (!playlist.songs || playlist.songs.length === 0) return '';
-    var firstVideo = playlist.songs[0].trim();
-    var remainingVideos = playlist.songs.slice(1).map(function(s) {
-      return s.trim();
-    }).filter(function(s) { return s.length > 0; }).join(',');
-    var playlistParam = remainingVideos ? '&playlist=' + remainingVideos : '';
-    return 'https://www.youtube.com/embed/' + firstVideo + '?enablejsapi=1&version=3&wmode=transparent&autoplay=1' + playlistParam;
+    if (!playlist.songs?.length) return "";
+    const [firstVideo, ...rest] = playlist.songs
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const playlistParam = rest.length ? `&playlist=${rest.join(",")}` : "";
+    return `https://www.youtube.com/embed/${firstVideo}?enablejsapi=1&version=3&wmode=transparent&autoplay=1${playlistParam}`;
   }
 
-  function showPlaylistModal(playlist) {
-    var pageslide = document.getElementById('pageslide');
-    var modalContent = pageslide ? pageslide.querySelector('.modal-content') : null;
+  function getModalElements() {
+    const pageslide = document.getElementById("pageslide");
+    return {
+      pageslide,
+      modalContent: pageslide?.querySelector(".modal-content") || null,
+    };
+  }
 
-    if (!pageslide || !modalContent) return;
-
-    var youtubeUrl = buildYouTubeUrl(playlist);
-
-    var albumImageUrl = '/albums/' + encodeURIComponent(playlist.name) + '.webp';
-
-    var html = '';
-    if (playlist.songs && playlist.songs.length > 0) {
-      html = '<iframe id="album" type="text/html" width="1" height="1" src="' + youtubeUrl + '" frameborder="0" allowfullscreen style="position: absolute; opacity: 0; pointer-events: none;"></iframe>' +
-             '<img id="ytplayer" src="' + albumImageUrl + '" alt="' + playlist.name + '" style="width: 60px; height: 60px; min-width: 60px; min-height: 60px; border-radius: 8px; object-fit: contain; background: rgba(0, 0, 0, 0.2); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); display: block; margin: 0; padding: 0;" />' +
-             '<div class="player-controls">' +
-             '<button class="prev" aria-label="Previous" title="Previous">⏮</button>' +
-             '<button class="play-pause" aria-label="Play/Pause" title="Play/Pause">▶</button>' +
-             '<button class="next" aria-label="Next" title="Next">⏭</button>' +
-             '</div>' +
-             '<a href="#" class="close" aria-label="Close" title="Close">×</a>';
-    } else {
-      html = '<h3>Playlist Not Found</h3>' +
-             '<a href="#" class="close" aria-label="Close" title="Close">×</a>';
-    }
-
-    modalContent.innerHTML = html;
-    pageslide.style.display = 'block';
-
-    // Trigger animation
-    setTimeout(function() {
-      pageslide.classList.add('show');
-    }, 10);
-
-    document.body.classList.add('modal-open');
-
-    // Setup close button
-    var closeBtn = pageslide.querySelector('.close');
+  function setupCloseButton(pageslide) {
+    const closeBtn = pageslide.querySelector(".close");
     if (closeBtn) {
-      closeBtn.addEventListener('click', function(e) {
+      closeBtn.addEventListener("click", (e) => {
         e.preventDefault();
         hideModal();
       });
     }
+  }
 
-    // Store playlist reference for controls
-    window.currentPlaylist = playlist;
-    window.currentVideoIndex = 0;
-
-    // Setup player control buttons
-    var controls = pageslide.querySelector('.player-controls');
-    if (controls) {
-      var prevBtn = controls.querySelector('.prev');
-      var playPauseBtn = controls.querySelector('.play-pause');
-      var nextBtn = controls.querySelector('.next');
-
-      if (prevBtn) {
-        prevBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (player && window.currentPlaylist?.songs && window.currentVideoIndex > 0) {
-            try {
-              window.currentVideoIndex--;
-              player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
-            } catch(e) {
-              console.error('Error playing previous:', e);
-            }
-          }
-        });
-      }
-
-      if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (player) {
-            try {
-              var state = player.getPlayerState();
-              if (state === YT.PlayerState.PLAYING) {
-                player.pauseVideo();
-                playPauseBtn.textContent = '▶';
-              } else {
-                player.playVideo();
-                playPauseBtn.textContent = '⏸';
-              }
-            } catch(e) {
-              console.error('Error toggling play/pause:', e);
-            }
-          }
-        });
-      }
-
-      if (nextBtn) {
-        nextBtn.addEventListener('click', function(e) {
-          e.preventDefault();
-          if (player && window.currentPlaylist?.songs && window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
-            try {
-              window.currentVideoIndex++;
-              player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
-            } catch(e) {
-              console.error('Error playing next:', e);
-            }
-          }
-        });
-      }
+  function setupEscHandler(pageslide) {
+    if (escHandler) {
+      document.removeEventListener("keydown", escHandler);
     }
-
-    // Close on ESC key
-    document.addEventListener('keydown', function escHandler(e) {
-      if (e.key === 'Escape' && pageslide.classList.contains('show')) {
+    escHandler = (e) => {
+      if (e.key === "Escape" && pageslide.classList.contains("show")) {
         hideModal();
-        document.removeEventListener('keydown', escHandler);
+        document.removeEventListener("keydown", escHandler);
+        escHandler = null;
+      }
+    };
+    document.addEventListener("keydown", escHandler);
+  }
+
+  function setupPlayerControls(pageslide) {
+    const controls = pageslide.querySelector(".player-controls");
+    if (!controls) return;
+
+    const prevBtn = controls.querySelector(".prev");
+    const playPauseBtn = controls.querySelector(".play-pause");
+    const nextBtn = controls.querySelector(".next");
+
+    prevBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (
+        player &&
+        window.currentPlaylist?.songs &&
+        window.currentVideoIndex > 0
+      ) {
+        window.currentVideoIndex--;
+        try {
+          player.loadVideoById(
+            window.currentPlaylist.songs[window.currentVideoIndex].trim()
+          );
+        } catch (err) {
+          console.error("Error playing previous:", err);
+        }
       }
     });
 
-    // Initialize YouTube player if available
-    if (typeof YT !== 'undefined') {
+    playPauseBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!player) return;
+      try {
+        const isPlaying = player.getPlayerState() === YT.PlayerState.PLAYING;
+        if (isPlaying) {
+          player.pauseVideo();
+          playPauseBtn.textContent = "▶";
+        } else {
+          player.playVideo();
+          playPauseBtn.textContent = "⏸";
+        }
+      } catch (err) {
+        console.error("Error toggling play/pause:", err);
+      }
+    });
+
+    nextBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const { currentPlaylist, currentVideoIndex } = window;
+      if (
+        player &&
+        currentPlaylist?.songs &&
+        currentVideoIndex < currentPlaylist.songs.length - 1
+      ) {
+        window.currentVideoIndex++;
+        try {
+          player.loadVideoById(
+            currentPlaylist.songs[window.currentVideoIndex].trim()
+          );
+        } catch (err) {
+          console.error("Error playing next:", err);
+        }
+      }
+    });
+  }
+
+  function loadYouTubeAPI() {
+    if (typeof YT !== "undefined") {
       initYouTubePlayer();
-    } else {
-      var tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      var firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      window.onYouTubeIframeAPIReady = function() {
-        initYouTubePlayer();
-      };
+      return;
+    }
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScript = document.getElementsByTagName("script")[0];
+    firstScript.parentNode.insertBefore(tag, firstScript);
+    window.onYouTubeIframeAPIReady = initYouTubePlayer;
+  }
+
+  function showModal(content) {
+    const { pageslide, modalContent } = getModalElements();
+    if (!pageslide || !modalContent) return;
+
+    modalContent.innerHTML = content;
+    pageslide.style.display = "block";
+    setTimeout(() => pageslide.classList.add("show"), 10);
+    document.body.classList.add("modal-open");
+    setupCloseButton(pageslide);
+    setupEscHandler(pageslide);
+  }
+
+  function showPlaylistModal(playlist) {
+    const { pageslide } = getModalElements();
+    if (!pageslide) return;
+
+    const hasSongs = playlist.songs?.length > 0;
+    const youtubeUrl = buildYouTubeUrl(playlist);
+    const albumImageUrl = `/albums/${encodeURIComponent(playlist.name)}.webp`;
+
+    const content = hasSongs
+      ? `<iframe id="album" type="text/html" width="1" height="1" src="${youtubeUrl}" frameborder="0" allowfullscreen></iframe>
+         <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" />
+         <div class="player-controls">
+           <button class="prev" aria-label="Previous" title="Previous">⏮</button>
+           <button class="play-pause" aria-label="Play/Pause" title="Play/Pause">▶</button>
+           <button class="next" aria-label="Next" title="Next">⏭</button>
+         </div>
+         <a href="#" class="close" aria-label="Close" title="Close">×</a>`
+      : `<h3>Playlist Not Found</h3>
+         <a href="#" class="close" aria-label="Close" title="Close">×</a>`;
+
+    showModal(content);
+
+    if (hasSongs) {
+      window.currentPlaylist = playlist;
+      window.currentVideoIndex = 0;
+      setupPlayerControls(pageslide);
+      loadYouTubeAPI();
     }
 
-    // Initialize Piecon if available
-    if (typeof Piecon !== 'undefined') {
-      Piecon.setOptions({ color: '#fff007', background: '#333', shadow: '#444' });
+    if (typeof Piecon !== "undefined") {
+      Piecon.setOptions({
+        color: "#fff007",
+        background: "#333",
+        shadow: "#444",
+      });
     }
   }
 
   function initYouTubePlayer() {
     try {
-      player = new YT.Player('album', {
-        events: {
-          'onReady': onPlayerReady
-        }
+      player = new YT.Player("album", {
+        events: { onReady: onPlayerReady },
       });
-    } catch(e) {
-      console.error('Error initializing YouTube player:', e);
+    } catch (err) {
+      console.error("Error initializing YouTube player:", err);
     }
   }
 
-  function onPlayerReady(event) {
-    var count = 0;
-    progressInterval = setInterval(function() {
-      if (count > 100) {
-        if (typeof Piecon !== 'undefined') {
-          Piecon.reset();
-        }
-        clearInterval(progressInterval);
-        return false;
-      }
+  function onPlayerReady() {
+    progressInterval = setInterval(() => {
       try {
-        var currentTime = player.getCurrentTime();
-        var duration = player.getDuration();
+        const currentTime = player.getCurrentTime();
+        const duration = player.getDuration();
         if (duration > 0) {
-          count = (Math.floor(currentTime) * 100) / duration;
-          if (typeof Piecon !== 'undefined') {
-            Piecon.setProgress(count);
+          const progress = (Math.floor(currentTime) * 100) / duration;
+          if (progress > 100) {
+            if (typeof Piecon !== "undefined") Piecon.reset();
+            clearInterval(progressInterval);
+            progressInterval = null;
+            return;
           }
+          if (typeof Piecon !== "undefined") Piecon.setProgress(progress);
         }
-      } catch(e) {
+      } catch (err) {
         // Player not ready yet
       }
     }, 1000);
 
-    // Update play/pause button state and track video changes
-    player.addEventListener('onStateChange', function(event) {
-      var playPauseBtn = document.querySelector('.player-controls .play-pause');
+    player.addEventListener("onStateChange", (event) => {
+      const playPauseBtn = document.querySelector(
+        ".player-controls .play-pause"
+      );
       if (playPauseBtn) {
-        playPauseBtn.textContent = event.data === YT.PlayerState.PLAYING ? '⏸' : '▶';
+        playPauseBtn.textContent =
+          event.data === YT.PlayerState.PLAYING ? "⏸" : "▶";
       }
 
       // Auto-play next when video ends
-      if (event.data === YT.PlayerState.ENDED && window.currentPlaylist?.songs) {
-        if (window.currentVideoIndex < window.currentPlaylist.songs.length - 1) {
+      if (
+        event.data === YT.PlayerState.ENDED &&
+        window.currentPlaylist?.songs
+      ) {
+        const { currentPlaylist, currentVideoIndex } = window;
+        if (currentVideoIndex < currentPlaylist.songs.length - 1) {
           window.currentVideoIndex++;
-          player.loadVideoById(window.currentPlaylist.songs[window.currentVideoIndex].trim());
-          player.playVideo();
+          try {
+            player.loadVideoById(
+              currentPlaylist.songs[window.currentVideoIndex].trim()
+            );
+            player.playVideo();
+          } catch (err) {
+            console.error("Error loading next video:", err);
+          }
         }
       }
     });
   }
 
   function hideModal() {
-    var pageslide = document.getElementById('pageslide');
-    var modalContent = pageslide ? pageslide.querySelector('.modal-content') : null;
+    const { pageslide, modalContent } = getModalElements();
 
     if (pageslide) {
-      pageslide.classList.remove('show');
-
-      // Wait for animation to complete before hiding
-      setTimeout(function() {
-        pageslide.style.display = 'none';
-        if (modalContent) {
-          modalContent.innerHTML = '';
-        }
+      pageslide.classList.remove("show");
+      setTimeout(() => {
+        pageslide.style.display = "none";
+        if (modalContent) modalContent.innerHTML = "";
       }, 300);
     }
 
-    document.body.classList.remove('modal-open');
+    document.body.classList.remove("modal-open");
 
     if (player) {
       try {
         player.destroy();
-      } catch(e) {
+      } catch (err) {
         // Ignore errors
       }
       player = null;
     }
+
     if (progressInterval) {
       clearInterval(progressInterval);
       progressInterval = null;
     }
-    if (typeof Piecon !== 'undefined') {
+
+    if (typeof Piecon !== "undefined") {
       Piecon.reset();
     }
 
-    // Update URL without mix parameter
-    window.history.pushState({}, '', '/');
+    if (escHandler) {
+      document.removeEventListener("keydown", escHandler);
+      escHandler = null;
+    }
+
+    window.history.pushState({}, "", "/");
   }
 
-  function checkAndShowModal() {
-    var urlParams = new URLSearchParams(window.location.search);
-    var mixParam = urlParams.get('mix');
-
-    if (mixParam) {
-      var playlist = findPlaylistByName(mixParam);
+  async function checkAndShowModal(slug) {
+    if (slug) {
+      const playlist = await fetchPlaylistBySlug(slug);
       if (playlist) {
         showPlaylistModal(playlist);
       } else {
-        console.warn('Playlist not found:', mixParam);
-        var pageslide = document.getElementById('pageslide');
-        var modalContent = pageslide ? pageslide.querySelector('.modal-content') : null;
+        console.warn("Playlist not found:", slug);
+        showPlaylistNotFound();
+      }
+      return;
+    }
 
-        if (pageslide && modalContent) {
-          modalContent.innerHTML = '<h3>Playlist Not Found</h3><a href="#" class="close" aria-label="Close" title="Close">×</a>';
-          pageslide.style.display = 'block';
-
-          setTimeout(function() {
-            pageslide.classList.add('show');
-          }, 10);
-
-          document.body.classList.add('modal-open');
-
-          var closeBtn = pageslide.querySelector('.close');
-          if (closeBtn) {
-            closeBtn.addEventListener('click', function(e) {
-              e.preventDefault();
-              hideModal();
-            });
-          }
-        }
+    const mixParam = new URLSearchParams(window.location.search).get("mix");
+    if (mixParam) {
+      const playlist = await findPlaylistByName(mixParam);
+      if (playlist) {
+        showPlaylistModal(playlist);
+      } else {
+        console.warn("Playlist not found:", mixParam);
+        showPlaylistNotFound();
       }
     } else {
       hideModal();
     }
   }
 
-  // Check on page load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkAndShowModal);
+  function showPlaylistNotFound() {
+    showModal(
+      '<h3>Playlist Not Found</h3><a href="#" class="close" aria-label="Close" title="Close">×</a>'
+    );
+  }
+
+  // Initialize on page load
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkAndShowModal);
   } else {
     checkAndShowModal();
   }
 
-  // Listen for popstate (back/forward buttons)
-  window.addEventListener('popstate', checkAndShowModal);
+  // Handle browser back/forward buttons
+  window.addEventListener("popstate", checkAndShowModal);
 
   // Expose functions globally
   window.hidePlaylistModal = hideModal;
