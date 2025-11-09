@@ -62,5 +62,5 @@ export function truncatePlaylistName(name: string, maxLength: number = 18): stri
 
 export function getPlaylistImageUrl(playlistName: string): string {
   // Use the album images from the public directory
-  return `/album/${encodeURIComponent(playlistName)}.jpg`;
+  return `/album-big/${encodeURIComponent(playlistName)}.jpg`;
 }
