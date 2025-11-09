@@ -145,7 +145,8 @@ body.modal-open {
   background: rgba(255, 255, 255, 0.22);
 }
 
-#pageslide iframe#album {
+#pageslide #album,
+#pageslide #album iframe {
   display: none;
 }
 

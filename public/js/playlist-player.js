@@ -34,13 +34,20 @@
     }
   }
 
-  function buildYouTubeUrl(playlist) {
-    if (!playlist.songs?.length) return "";
-    const [firstVideo, ...rest] = playlist.songs
+  function getFirstVideoId(playlist) {
+    if (!playlist.songs?.length) return null;
+    const [firstVideo] = playlist.songs
       .map((s) => s.trim())
       .filter(Boolean);
-    const playlistParam = rest.length ? `&playlist=${rest.join(",")}` : "";
-    return `https://www.youtube.com/embed/${firstVideo}?enablejsapi=1&version=3&wmode=transparent&autoplay=1${playlistParam}`;
+    return firstVideo || null;
+  }
+
+  function getPlaylistVideoIds(playlist) {
+    if (!playlist.songs?.length) return [];
+    return playlist.songs
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(1); // Skip first video as it's the current one
   }
 
   function getModalElements() {
@@ -103,8 +110,20 @@
 
     playPauseBtn?.addEventListener("click", (e) => {
       e.preventDefault();
-      if (!player) return;
+      if (!player) {
+        console.warn("Player not initialized yet");
+        // Try to initialize if YouTube API is available
+        if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
+          loadYouTubeAPI();
+        }
+        return;
+      }
       try {
+        // Check if player methods are available
+        if (typeof player.getPlayerState !== "function" || typeof player.playVideo !== "function") {
+          console.warn("Player methods not available yet");
+          return;
+        }
         const isPlaying = player.getPlayerState() === YT.PlayerState.PLAYING;
         if (isPlaying) {
           player.pauseVideo();
@@ -115,6 +134,12 @@
         }
       } catch (err) {
         console.error("Error toggling play/pause:", err);
+        // If error, try to reinitialize
+        if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
+          setTimeout(() => {
+            initYouTubePlayer();
+          }, 500);
+        }
       }
     });
 
@@ -139,15 +164,36 @@
   }
 
   function loadYouTubeAPI() {
-    if (typeof YT !== "undefined") {
-      initYouTubePlayer();
+    if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
+      // API already loaded, wait a bit for DOM to be ready then initialize
+      setTimeout(() => {
+        initYouTubePlayer();
+      }, 200);
       return;
     }
+
+    // If API is loading, wait for it
+    if (window.onYouTubeIframeAPIReady) {
+      const originalCallback = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function() {
+        if (originalCallback) originalCallback();
+        setTimeout(() => {
+          initYouTubePlayer();
+        }, 200);
+      };
+      return;
+    }
+
+    // Load the API
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
     const firstScript = document.getElementsByTagName("script")[0];
     firstScript.parentNode.insertBefore(tag, firstScript);
-    window.onYouTubeIframeAPIReady = initYouTubePlayer;
+    window.onYouTubeIframeAPIReady = function() {
+      setTimeout(() => {
+        initYouTubePlayer();
+      }, 200);
+    };
   }
 
   function showModal(content) {
@@ -166,12 +212,21 @@
     const { pageslide } = getModalElements();
     if (!pageslide) return;
 
+    // Clean up any existing player first
+    if (player) {
+      try {
+        player.destroy();
+      } catch (err) {
+        // Ignore errors
+      }
+      player = null;
+    }
+
     const hasSongs = playlist.songs?.length > 0;
-    const youtubeUrl = buildYouTubeUrl(playlist);
     const albumImageUrl = `/albums/${playlist.slug}.webp`;
 
     const content = hasSongs
-      ? `<iframe id="album" type="text/html" width="1" height="1" src="${youtubeUrl}" frameborder="0" allowfullscreen></iframe>
+      ? `<div id="album"></div>
          <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" />
          <div class="player-controls">
            <button class="prev" aria-label="Previous" title="Previous">⏮</button>
@@ -188,7 +243,10 @@
       window.currentPlaylist = playlist;
       window.currentVideoIndex = 0;
       setupPlayerControls(pageslide);
-      loadYouTubeAPI();
+      // Wait a bit for the div to be in the DOM before initializing the player
+      setTimeout(() => {
+        loadYouTubeAPI();
+      }, 100);
     }
 
     if (typeof Piecon !== "undefined") {
@@ -201,16 +259,123 @@
   }
 
   function initYouTubePlayer() {
+    // Ensure the container element exists before trying to initialize
+    const container = document.getElementById("album");
+    if (!container) {
+      console.warn("Album container not found, retrying...");
+      setTimeout(initYouTubePlayer, 100);
+      return;
+    }
+
+    // Ensure YouTube API is loaded
+    if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
+      console.warn("YouTube API not loaded yet, retrying...");
+      setTimeout(initYouTubePlayer, 100);
+      return;
+    }
+
+    // Ensure we have a playlist and video
+    if (!window.currentPlaylist || !window.currentPlaylist.songs || window.currentPlaylist.songs.length === 0) {
+      console.warn("No playlist or songs available");
+      return;
+    }
+
     try {
+      // Destroy any existing player first
+      if (player) {
+        try {
+          player.destroy();
+        } catch (err) {
+          // Ignore errors
+        }
+        player = null;
+      }
+
+      const firstVideoId = getFirstVideoId(window.currentPlaylist);
+      const playlistIds = getPlaylistVideoIds(window.currentPlaylist);
+
+      if (!firstVideoId) {
+        console.warn("No video ID found");
+        return;
+      }
+
+      // Create player configuration
+      const playerVars = {
+        autoplay: 1,
+        enablejsapi: 1,
+        wmode: "transparent",
+      };
+
+      // Add playlist if there are more videos
+      if (playlistIds.length > 0) {
+        playerVars.playlist = playlistIds.join(",");
+      }
+
+      // Create new player instance - let YouTube API create the iframe
       player = new YT.Player("album", {
+        width: 1,
+        height: 1,
+        videoId: firstVideoId,
+        playerVars: playerVars,
         events: { onReady: onPlayerReady },
       });
+      console.log("YouTube player initialized with video:", firstVideoId);
     } catch (err) {
       console.error("Error initializing YouTube player:", err);
+      // Retry after a delay
+      setTimeout(initYouTubePlayer, 500);
     }
   }
 
   function onPlayerReady() {
+    console.log("YouTube player ready, starting playback...");
+
+    // Update play button state
+    const playPauseBtn = document.querySelector(".player-controls .play-pause");
+    if (playPauseBtn) {
+      playPauseBtn.textContent = "⏸";
+    }
+
+    // Start playing the video automatically when player is ready
+    // Use a small delay to ensure the player is fully ready
+    setTimeout(() => {
+      try {
+        if (player && typeof player.playVideo === "function") {
+          console.log("Calling playVideo()");
+          player.playVideo();
+
+          // Verify it's playing after a short delay
+          setTimeout(() => {
+            try {
+              const state = player.getPlayerState();
+              console.log("Player state after playVideo:", state);
+              if (state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.BUFFERING) {
+                console.warn("Video not playing, retrying...");
+                player.playVideo();
+              }
+            } catch (err) {
+              console.error("Error checking player state:", err);
+            }
+          }, 500);
+        } else {
+          console.warn("Player or playVideo function not available");
+        }
+      } catch (err) {
+        console.error("Error starting video playback:", err);
+        // Retry once after a short delay
+        setTimeout(() => {
+          try {
+            if (player && typeof player.playVideo === "function") {
+              console.log("Retrying playVideo()");
+              player.playVideo();
+            }
+          } catch (retryErr) {
+            console.error("Error on retry starting video playback:", retryErr);
+          }
+        }, 500);
+      }
+    }, 200);
+
     progressInterval = setInterval(() => {
       try {
         const currentTime = player.getCurrentTime();
