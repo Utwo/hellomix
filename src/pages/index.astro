@@ -13,17 +13,34 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
           return (
             <li>
               <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
-                <img
-                  loading={index < 12 ? "eager" : "lazy"}
-                  src={`/albums/${playlist.slug}.webp`}
-                  width="400"
-                  height="400"
-                  alt={playlist.name}
-                  decoding="async"
-                  fetchpriority={index < 12 ? "high" : "low"}
-                  class="playlist-image"
-                  sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
-                />
+                <div class="album-image-wrapper">
+                  <img
+                    loading={index < 12 ? "eager" : "lazy"}
+                    src={`/albums/${playlist.slug}.webp`}
+                    width="400"
+                    height="400"
+                    alt={playlist.name}
+                    decoding="async"
+                    fetchpriority={index < 12 ? "high" : "low"}
+                    class="playlist-image"
+                    sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
+                  />
+                  <div
+                    class="play-button"
+                    aria-label={`Play ${playlist.name}`}
+                    title={`Play ${playlist.name}`}
+                    data-slug={playlist.slug}
+                  >
+                    <svg
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
                 <span class="playlist-name">{playlist.name}</span>
               </a>
             </li>
@@ -103,6 +120,14 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
     color: inherit;
   }
 
+  .all li .album-image-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+  }
+
   .all li img {
     width: 100%;
     height: auto;
@@ -110,6 +135,49 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
     border-radius: 12px;
     aspect-ratio: 1 / 1;
     object-fit: cover;
+  }
+
+  .all li .play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    color: #1a1a1a;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.65);
+  }
+
+  .all li:hover .play-button {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+
+  .all li .play-button:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .all li .play-button:active {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+
+  .all li .play-button svg {
+    width: 24px;
+    height: 24px;
   }
 
   .all li a {
