@@ -8,8 +8,6 @@
 
   // Initialize YouTube API
   function initYouTubeAPI() {
-    if (youtubeApiReady) return;
-
     // Check if API is already loaded
     if (typeof YT !== "undefined" && YT.Player) {
       youtubeApiReady = true;
@@ -32,9 +30,9 @@
         originalCallback();
       }
 
-      // If we have a playlist ready, initialize player
+      // If we have a playlist ready, try to initialize player
       if (window.currentPlaylist && window.currentVideoIndex !== undefined) {
-        setTimeout(() => initializePlayer(), 100);
+        setTimeout(() => initializePlayer(), 300);
       }
     };
   }
@@ -116,22 +114,33 @@
 
   // Initialize YouTube player
   function initializePlayer() {
-    if (!youtubeApiReady || typeof YT === "undefined" || !YT.Player) {
-      // Wait a bit and retry
-      setTimeout(() => {
-        if (typeof YT !== "undefined" && YT.Player) {
-          youtubeApiReady = true;
-          initializePlayer();
-        }
-      }, 100);
+    // Check if API is ready
+    if (typeof YT === "undefined" || !YT.Player) {
+      console.log("YouTube API not ready, retrying...");
+      setTimeout(() => initializePlayer(), 200);
       return;
     }
 
     const { pageslide } = getModalElements();
-    if (!pageslide || !window.currentPlaylist) return;
+    if (!pageslide || !window.currentPlaylist) {
+      console.log("Modal or playlist not ready, retrying...");
+      setTimeout(() => initializePlayer(), 200);
+      return;
+    }
 
     const albumDiv = pageslide.querySelector("#album");
-    if (!albumDiv) return;
+    if (!albumDiv) {
+      console.log("Album div not found, retrying...");
+      setTimeout(() => initializePlayer(), 200);
+      return;
+    }
+
+    const currentVideoId =
+      window.currentPlaylist.songs[window.currentVideoIndex];
+    if (!currentVideoId) {
+      console.log("No video ID found");
+      return;
+    }
 
     // Destroy existing player
     if (player) {
@@ -143,48 +152,50 @@
       player = null;
     }
 
-    const currentVideoId =
-      window.currentPlaylist.songs[window.currentVideoIndex];
-    if (!currentVideoId) return;
-
     // Create iframe for YouTube player (hidden)
     albumDiv.innerHTML = `<div id="youtube-player"></div>`;
 
-    player = new YT.Player("youtube-player", {
-      height: "0",
-      width: "0",
-      videoId: currentVideoId,
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        disablekb: 1,
-        enablejsapi: 1,
-        fs: 0,
-        iv_load_policy: 3,
-        modestbranding: 1,
-        playsinline: 1,
-        rel: 0,
-      },
-      events: {
-        onReady: function (event) {
-          event.target.playVideo();
-          updateVideoName(currentVideoId);
-          startProgressTracking();
+    try {
+      player = new YT.Player("youtube-player", {
+        height: "0",
+        width: "0",
+        videoId: currentVideoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          enablejsapi: 1,
+          fs: 0,
+          iv_load_policy: 3,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
         },
-        onStateChange: function (event) {
-          if (event.data === YT.PlayerState.ENDED) {
-            playNext();
-          } else if (event.data === YT.PlayerState.PLAYING) {
-            updatePlayPauseButton(true);
-          } else if (event.data === YT.PlayerState.PAUSED) {
-            updatePlayPauseButton(false);
-          }
+        events: {
+          onReady: function (event) {
+            console.log("YouTube player ready, starting playback");
+            event.target.playVideo();
+            updateVideoName(currentVideoId);
+            startProgressTracking();
+          },
+          onStateChange: function (event) {
+            if (event.data === YT.PlayerState.ENDED) {
+              playNext();
+            } else if (event.data === YT.PlayerState.PLAYING) {
+              updatePlayPauseButton(true);
+            } else if (event.data === YT.PlayerState.PAUSED) {
+              updatePlayPauseButton(false);
+            }
+          },
+          onError: function (event) {
+            console.error("YouTube player error:", event);
+          },
         },
-        onError: function (event) {
-          console.error("YouTube player error:", event);
-        },
-      },
-    });
+      });
+    } catch (error) {
+      console.error("Error creating YouTube player:", error);
+      setTimeout(() => initializePlayer(), 500);
+    }
   }
 
   // Start tracking progress for Piecon
@@ -213,7 +224,17 @@
   function updatePlayPauseButton(isPlaying) {
     const playPauseBtn = document.querySelector(".play-pause");
     if (playPauseBtn) {
-      playPauseBtn.textContent = isPlaying ? "⏸" : "▶";
+      const playIcon = playPauseBtn.querySelector(".play-icon");
+      const pauseIcon = playPauseBtn.querySelector(".pause-icon");
+      if (playIcon && pauseIcon) {
+        if (isPlaying) {
+          playIcon.style.display = "none";
+          pauseIcon.style.display = "block";
+        } else {
+          playIcon.style.display = "block";
+          pauseIcon.style.display = "none";
+        }
+      }
     }
   }
 
@@ -377,9 +398,24 @@
            <div id="video-name" class="video-name">Loading...</div>
          </div>
          <div class="player-controls">
-           <button class="prev" aria-label="Previous" title="Previous">⏮</button>
-           <button class="play-pause" aria-label="Play/Pause" title="Play/Pause">▶</button>
-           <button class="next" aria-label="Next" title="Next">⏭</button>
+           <button class="prev" aria-label="Previous" title="Previous">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+               <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+             </svg>
+           </button>
+           <button class="play-pause" aria-label="Play/Pause" title="Play/Pause">
+             <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+               <path d="M8 5v14l11-7z"/>
+             </svg>
+             <svg class="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+               <path d="M6 4h4v16H6zm8 0h4v16h-4z"/>
+             </svg>
+           </button>
+           <button class="next" aria-label="Next" title="Next">
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+               <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+             </svg>
+           </button>
          </div>
          ${youtubeIcon}
          <a href="#" class="close" aria-label="Close" title="Close">×</a>`
@@ -395,14 +431,11 @@
       // Setup player controls
       setupPlayerControls();
 
-      // Initialize YouTube API and player
+      // Initialize YouTube API
       initYouTubeAPI();
 
-      // Try to initialize player immediately if API is ready, otherwise wait for callback
-      if (youtubeApiReady || (typeof YT !== "undefined" && YT.Player)) {
-        youtubeApiReady = true;
-        setTimeout(() => initializePlayer(), 100);
-      }
+      // Start initializing player - it will retry until everything is ready
+      setTimeout(() => initializePlayer(), 300);
     }
 
     if (typeof Piecon !== "undefined") {
