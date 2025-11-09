@@ -108,6 +108,9 @@
         if (videoNameEl) {
           videoNameEl.textContent = title;
         }
+        // Don't skip based on title - only rely on YouTube player's onError event
+        // Title fetch can fail for many reasons (network, rate limiting, etc.)
+        // but the video might still be valid and playing
       });
     }
   }
@@ -189,6 +192,12 @@
           },
           onError: function (event) {
             console.error("YouTube player error:", event);
+            // If video fails to load, skip to next song
+            setTimeout(() => {
+              if (window.currentPlaylist) {
+                playNext();
+              }
+            }, 1500);
           },
         },
       });
