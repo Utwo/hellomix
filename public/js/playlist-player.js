@@ -2,6 +2,42 @@
   let player;
   let progressInterval;
   let escHandler = null;
+  let youtubeApiReady = false;
+  let youtubeApiLoading = false;
+  let videoTitles = {}; // Cache for video titles
+
+  // Initialize YouTube API
+  function initYouTubeAPI() {
+    if (youtubeApiReady) return;
+
+    // Check if API is already loaded
+    if (typeof YT !== "undefined" && YT.Player) {
+      youtubeApiReady = true;
+      youtubeApiLoading = false;
+      return;
+    }
+
+    // If already setting up callback, don't do it again
+    if (youtubeApiLoading) return;
+    youtubeApiLoading = true;
+
+    // Wait for YouTube API to load
+    const originalCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function () {
+      youtubeApiReady = true;
+      youtubeApiLoading = false;
+
+      // Call original callback if it exists
+      if (originalCallback && typeof originalCallback === "function") {
+        originalCallback();
+      }
+
+      // If we have a playlist ready, initialize player
+      if (window.currentPlaylist && window.currentVideoIndex !== undefined) {
+        setTimeout(() => initializePlayer(), 100);
+      }
+    };
+  }
 
   async function fetchPlaylistBySlug(slug) {
     if (!slug) return null;
@@ -34,20 +70,221 @@
     }
   }
 
-  function getFirstVideoId(playlist) {
-    if (!playlist.songs?.length) return null;
-    const [firstVideo] = playlist.songs
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return firstVideo || null;
+  // Construct YouTube playlist URL from song IDs
+  function getYouTubePlaylistUrl(songs) {
+    if (!songs || songs.length === 0) return null;
+
+    // YouTube supports creating a playlist from multiple video IDs
+    // Format: https://www.youtube.com/watch_videos?video_ids=ID1,ID2,ID3
+    const videoIds = songs.join(",");
+    return `https://www.youtube.com/watch_videos?video_ids=${videoIds}`;
   }
 
-  function getPlaylistVideoIds(playlist) {
-    if (!playlist.songs?.length) return [];
-    return playlist.songs
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(1); // Skip first video as it's the current one
+  // Fetch video title from YouTube oEmbed API
+  async function fetchVideoTitle(videoId) {
+    if (videoTitles[videoId]) {
+      return videoTitles[videoId];
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        videoTitles[videoId] = data.title;
+        return data.title;
+      }
+    } catch (error) {
+      console.error("Error fetching video title:", error);
+    }
+    return "Unknown Title";
+  }
+
+  // Update video name display
+  function updateVideoName(videoId) {
+    const videoNameEl = document.getElementById("video-name");
+    if (videoNameEl) {
+      videoNameEl.textContent = "Loading...";
+      fetchVideoTitle(videoId).then((title) => {
+        if (videoNameEl) {
+          videoNameEl.textContent = title;
+        }
+      });
+    }
+  }
+
+  // Initialize YouTube player
+  function initializePlayer() {
+    if (!youtubeApiReady || typeof YT === "undefined" || !YT.Player) {
+      // Wait a bit and retry
+      setTimeout(() => {
+        if (typeof YT !== "undefined" && YT.Player) {
+          youtubeApiReady = true;
+          initializePlayer();
+        }
+      }, 100);
+      return;
+    }
+
+    const { pageslide } = getModalElements();
+    if (!pageslide || !window.currentPlaylist) return;
+
+    const albumDiv = pageslide.querySelector("#album");
+    if (!albumDiv) return;
+
+    // Destroy existing player
+    if (player) {
+      try {
+        player.destroy();
+      } catch (err) {
+        // Ignore errors
+      }
+      player = null;
+    }
+
+    const currentVideoId =
+      window.currentPlaylist.songs[window.currentVideoIndex];
+    if (!currentVideoId) return;
+
+    // Create iframe for YouTube player (hidden)
+    albumDiv.innerHTML = `<div id="youtube-player"></div>`;
+
+    player = new YT.Player("youtube-player", {
+      height: "0",
+      width: "0",
+      videoId: currentVideoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        enablejsapi: 1,
+        fs: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0,
+      },
+      events: {
+        onReady: function (event) {
+          event.target.playVideo();
+          updateVideoName(currentVideoId);
+          startProgressTracking();
+        },
+        onStateChange: function (event) {
+          if (event.data === YT.PlayerState.ENDED) {
+            playNext();
+          } else if (event.data === YT.PlayerState.PLAYING) {
+            updatePlayPauseButton(true);
+          } else if (event.data === YT.PlayerState.PAUSED) {
+            updatePlayPauseButton(false);
+          }
+        },
+        onError: function (event) {
+          console.error("YouTube player error:", event);
+        },
+      },
+    });
+  }
+
+  // Start tracking progress for Piecon
+  function startProgressTracking() {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
+
+    progressInterval = setInterval(() => {
+      if (player && typeof Piecon !== "undefined") {
+        try {
+          const currentTime = player.getCurrentTime();
+          const duration = player.getDuration();
+          if (duration > 0) {
+            const progress = (currentTime / duration) * 100;
+            Piecon.setProgress(progress);
+          }
+        } catch (err) {
+          // Ignore errors
+        }
+      }
+    }, 100);
+  }
+
+  // Update play/pause button
+  function updatePlayPauseButton(isPlaying) {
+    const playPauseBtn = document.querySelector(".play-pause");
+    if (playPauseBtn) {
+      playPauseBtn.textContent = isPlaying ? "⏸" : "▶";
+    }
+  }
+
+  // Play next video
+  function playNext() {
+    if (!window.currentPlaylist || !player) return;
+
+    const nextIndex =
+      (window.currentVideoIndex + 1) % window.currentPlaylist.songs.length;
+    window.currentVideoIndex = nextIndex;
+    const nextVideoId = window.currentPlaylist.songs[nextIndex];
+
+    if (nextVideoId) {
+      player.loadVideoById(nextVideoId);
+      updateVideoName(nextVideoId);
+    }
+  }
+
+  // Play previous video
+  function playPrevious() {
+    if (!window.currentPlaylist || !player) return;
+
+    const prevIndex =
+      window.currentVideoIndex === 0
+        ? window.currentPlaylist.songs.length - 1
+        : window.currentVideoIndex - 1;
+    window.currentVideoIndex = prevIndex;
+    const prevVideoId = window.currentPlaylist.songs[prevIndex];
+
+    if (prevVideoId) {
+      player.loadVideoById(prevVideoId);
+      updateVideoName(prevVideoId);
+    }
+  }
+
+  // Toggle play/pause
+  function togglePlayPause() {
+    if (!player) return;
+
+    try {
+      const state = player.getPlayerState();
+      if (state === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+      } else if (
+        state === YT.PlayerState.PAUSED ||
+        state === YT.PlayerState.ENDED
+      ) {
+        player.playVideo();
+      }
+    } catch (err) {
+      console.error("Error toggling play/pause:", err);
+    }
+  }
+
+  // Setup player controls
+  function setupPlayerControls() {
+    const prevBtn = document.querySelector(".prev");
+    const playPauseBtn = document.querySelector(".play-pause");
+    const nextBtn = document.querySelector(".next");
+
+    if (prevBtn) {
+      prevBtn.addEventListener("click", playPrevious);
+    }
+
+    if (playPauseBtn) {
+      playPauseBtn.addEventListener("click", togglePlayPause);
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener("click", playNext);
+    }
   }
 
   function getModalElements() {
@@ -73,127 +310,36 @@
       document.removeEventListener("keydown", escHandler);
     }
     escHandler = (e) => {
-      if (e.key === "Escape" && pageslide.classList.contains("show")) {
+      // Only handle keys when modal is open
+      if (!pageslide.classList.contains("show")) return;
+
+      // Handle Escape key to close modal
+      if (e.key === "Escape") {
         hideModal();
         document.removeEventListener("keydown", escHandler);
         escHandler = null;
+        return;
+      }
+
+      // Handle Spacebar to toggle play/pause
+      if (e.key === " " || e.key === "Spacebar") {
+        // Prevent default scrolling behavior
+        e.preventDefault();
+
+        // Only toggle if player exists and user is not typing in an input
+        const activeElement = document.activeElement;
+        const isInputFocused =
+          activeElement &&
+          (activeElement.tagName === "INPUT" ||
+            activeElement.tagName === "TEXTAREA" ||
+            activeElement.isContentEditable);
+
+        if (!isInputFocused && player) {
+          togglePlayPause();
+        }
       }
     };
     document.addEventListener("keydown", escHandler);
-  }
-
-  function setupPlayerControls(pageslide) {
-    const controls = pageslide.querySelector(".player-controls");
-    if (!controls) return;
-
-    const prevBtn = controls.querySelector(".prev");
-    const playPauseBtn = controls.querySelector(".play-pause");
-    const nextBtn = controls.querySelector(".next");
-
-    prevBtn?.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (
-        player &&
-        window.currentPlaylist?.songs &&
-        window.currentVideoIndex > 0
-      ) {
-        window.currentVideoIndex--;
-        try {
-          player.loadVideoById(
-            window.currentPlaylist.songs[window.currentVideoIndex].trim()
-          );
-        } catch (err) {
-          console.error("Error playing previous:", err);
-        }
-      }
-    });
-
-    playPauseBtn?.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (!player) {
-        console.warn("Player not initialized yet");
-        // Try to initialize if YouTube API is available
-        if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
-          loadYouTubeAPI();
-        }
-        return;
-      }
-      try {
-        // Check if player methods are available
-        if (typeof player.getPlayerState !== "function" || typeof player.playVideo !== "function") {
-          console.warn("Player methods not available yet");
-          return;
-        }
-        const isPlaying = player.getPlayerState() === YT.PlayerState.PLAYING;
-        if (isPlaying) {
-          player.pauseVideo();
-          playPauseBtn.textContent = "▶";
-        } else {
-          player.playVideo();
-          playPauseBtn.textContent = "⏸";
-        }
-      } catch (err) {
-        console.error("Error toggling play/pause:", err);
-        // If error, try to reinitialize
-        if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
-          setTimeout(() => {
-            initYouTubePlayer();
-          }, 500);
-        }
-      }
-    });
-
-    nextBtn?.addEventListener("click", (e) => {
-      e.preventDefault();
-      const { currentPlaylist, currentVideoIndex } = window;
-      if (
-        player &&
-        currentPlaylist?.songs &&
-        currentVideoIndex < currentPlaylist.songs.length - 1
-      ) {
-        window.currentVideoIndex++;
-        try {
-          player.loadVideoById(
-            currentPlaylist.songs[window.currentVideoIndex].trim()
-          );
-        } catch (err) {
-          console.error("Error playing next:", err);
-        }
-      }
-    });
-  }
-
-  function loadYouTubeAPI() {
-    if (typeof YT !== "undefined" && typeof YT.Player !== "undefined") {
-      // API already loaded, wait a bit for DOM to be ready then initialize
-      setTimeout(() => {
-        initYouTubePlayer();
-      }, 200);
-      return;
-    }
-
-    // If API is loading, wait for it
-    if (window.onYouTubeIframeAPIReady) {
-      const originalCallback = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = function() {
-        if (originalCallback) originalCallback();
-        setTimeout(() => {
-          initYouTubePlayer();
-        }, 200);
-      };
-      return;
-    }
-
-    // Load the API
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScript = document.getElementsByTagName("script")[0];
-    firstScript.parentNode.insertBefore(tag, firstScript);
-    window.onYouTubeIframeAPIReady = function() {
-      setTimeout(() => {
-        initYouTubePlayer();
-      }, 200);
-    };
   }
 
   function showModal(content) {
@@ -212,27 +358,30 @@
     const { pageslide } = getModalElements();
     if (!pageslide) return;
 
-    // Clean up any existing player first
-    if (player) {
-      try {
-        player.destroy();
-      } catch (err) {
-        // Ignore errors
-      }
-      player = null;
-    }
-
     const hasSongs = playlist.songs?.length > 0;
     const albumImageUrl = `/albums/${playlist.slug}.webp`;
+    const youtubeUrl = hasSongs ? getYouTubePlaylistUrl(playlist.songs) : null;
+    const youtubeIcon = youtubeUrl
+      ? `<a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="youtube-link" aria-label="Open YouTube playlist" title="Open YouTube playlist">
+           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+           </svg>
+         </a>`
+      : "";
 
     const content = hasSongs
       ? `<div id="album"></div>
          <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" />
+         <div class="player-info">
+           <div class="playlist-name">${playlist.name}</div>
+           <div id="video-name" class="video-name">Loading...</div>
+         </div>
          <div class="player-controls">
            <button class="prev" aria-label="Previous" title="Previous">⏮</button>
            <button class="play-pause" aria-label="Play/Pause" title="Play/Pause">▶</button>
            <button class="next" aria-label="Next" title="Next">⏭</button>
          </div>
+         ${youtubeIcon}
          <a href="#" class="close" aria-label="Close" title="Close">×</a>`
       : `<h3>Playlist Not Found</h3>
          <a href="#" class="close" aria-label="Close" title="Close">×</a>`;
@@ -242,11 +391,18 @@
     if (hasSongs) {
       window.currentPlaylist = playlist;
       window.currentVideoIndex = 0;
-      setupPlayerControls(pageslide);
-      // Wait a bit for the div to be in the DOM before initializing the player
-      setTimeout(() => {
-        loadYouTubeAPI();
-      }, 100);
+
+      // Setup player controls
+      setupPlayerControls();
+
+      // Initialize YouTube API and player
+      initYouTubeAPI();
+
+      // Try to initialize player immediately if API is ready, otherwise wait for callback
+      if (youtubeApiReady || (typeof YT !== "undefined" && YT.Player)) {
+        youtubeApiReady = true;
+        setTimeout(() => initializePlayer(), 100);
+      }
     }
 
     if (typeof Piecon !== "undefined") {
@@ -256,173 +412,6 @@
         shadow: "#444",
       });
     }
-  }
-
-  function initYouTubePlayer() {
-    // Ensure the container element exists before trying to initialize
-    const container = document.getElementById("album");
-    if (!container) {
-      console.warn("Album container not found, retrying...");
-      setTimeout(initYouTubePlayer, 100);
-      return;
-    }
-
-    // Ensure YouTube API is loaded
-    if (typeof YT === "undefined" || typeof YT.Player === "undefined") {
-      console.warn("YouTube API not loaded yet, retrying...");
-      setTimeout(initYouTubePlayer, 100);
-      return;
-    }
-
-    // Ensure we have a playlist and video
-    if (!window.currentPlaylist || !window.currentPlaylist.songs || window.currentPlaylist.songs.length === 0) {
-      console.warn("No playlist or songs available");
-      return;
-    }
-
-    try {
-      // Destroy any existing player first
-      if (player) {
-        try {
-          player.destroy();
-        } catch (err) {
-          // Ignore errors
-        }
-        player = null;
-      }
-
-      const firstVideoId = getFirstVideoId(window.currentPlaylist);
-      const playlistIds = getPlaylistVideoIds(window.currentPlaylist);
-
-      if (!firstVideoId) {
-        console.warn("No video ID found");
-        return;
-      }
-
-      // Create player configuration
-      const playerVars = {
-        autoplay: 1,
-        enablejsapi: 1,
-        wmode: "transparent",
-      };
-
-      // Add playlist if there are more videos
-      if (playlistIds.length > 0) {
-        playerVars.playlist = playlistIds.join(",");
-      }
-
-      // Create new player instance - let YouTube API create the iframe
-      player = new YT.Player("album", {
-        width: 1,
-        height: 1,
-        videoId: firstVideoId,
-        playerVars: playerVars,
-        events: { onReady: onPlayerReady },
-      });
-      console.log("YouTube player initialized with video:", firstVideoId);
-    } catch (err) {
-      console.error("Error initializing YouTube player:", err);
-      // Retry after a delay
-      setTimeout(initYouTubePlayer, 500);
-    }
-  }
-
-  function onPlayerReady() {
-    console.log("YouTube player ready, starting playback...");
-
-    // Update play button state
-    const playPauseBtn = document.querySelector(".player-controls .play-pause");
-    if (playPauseBtn) {
-      playPauseBtn.textContent = "⏸";
-    }
-
-    // Start playing the video automatically when player is ready
-    // Use a small delay to ensure the player is fully ready
-    setTimeout(() => {
-      try {
-        if (player && typeof player.playVideo === "function") {
-          console.log("Calling playVideo()");
-          player.playVideo();
-
-          // Verify it's playing after a short delay
-          setTimeout(() => {
-            try {
-              const state = player.getPlayerState();
-              console.log("Player state after playVideo:", state);
-              if (state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.BUFFERING) {
-                console.warn("Video not playing, retrying...");
-                player.playVideo();
-              }
-            } catch (err) {
-              console.error("Error checking player state:", err);
-            }
-          }, 500);
-        } else {
-          console.warn("Player or playVideo function not available");
-        }
-      } catch (err) {
-        console.error("Error starting video playback:", err);
-        // Retry once after a short delay
-        setTimeout(() => {
-          try {
-            if (player && typeof player.playVideo === "function") {
-              console.log("Retrying playVideo()");
-              player.playVideo();
-            }
-          } catch (retryErr) {
-            console.error("Error on retry starting video playback:", retryErr);
-          }
-        }, 500);
-      }
-    }, 200);
-
-    progressInterval = setInterval(() => {
-      try {
-        const currentTime = player.getCurrentTime();
-        const duration = player.getDuration();
-        if (duration > 0) {
-          const progress = (Math.floor(currentTime) * 100) / duration;
-          if (progress > 100) {
-            if (typeof Piecon !== "undefined") Piecon.reset();
-            clearInterval(progressInterval);
-            progressInterval = null;
-            return;
-          }
-          if (typeof Piecon !== "undefined") Piecon.setProgress(progress);
-        }
-      } catch (err) {
-        // Player not ready yet
-      }
-    }, 1000);
-
-    player.addEventListener("onStateChange", (event) => {
-      const playPauseBtn = document.querySelector(
-        ".player-controls .play-pause"
-      );
-      if (playPauseBtn) {
-        playPauseBtn.textContent =
-          event.data === YT.PlayerState.PLAYING ? "⏸" : "▶";
-      }
-
-      // Auto-play next when video ends
-      if (
-        event.data === YT.PlayerState.ENDED &&
-        window.currentPlaylist?.songs
-      ) {
-        const { currentPlaylist, currentVideoIndex } = window;
-        if (currentVideoIndex < currentPlaylist.songs.length - 1) {
-          window.currentVideoIndex++;
-          try {
-            player.loadVideoById(
-              currentPlaylist.songs[window.currentVideoIndex].trim()
-            );
-            player.playVideo();
-          } catch (err) {
-            console.error("Error loading next video:", err);
-          }
-        }
-      }
-    });
   }
 
   function hideModal() {
@@ -515,6 +504,14 @@
 
   // Initialize on page load
   function initOnLoad() {
+    // Initialize YouTube API
+    initYouTubeAPI();
+
+    // Check if API is already loaded (script might have loaded before ours)
+    if (typeof YT !== "undefined" && YT.Player) {
+      youtubeApiReady = true;
+    }
+
     checkAndShowModal();
   }
 

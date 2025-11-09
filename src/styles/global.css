@@ -130,6 +130,7 @@ body.modal-open {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   flex-shrink: 0;
+  border-radius: 8px;
 }
 
 #pageslide .close:hover {
@@ -145,9 +146,100 @@ body.modal-open {
   background: rgba(255, 255, 255, 0.22);
 }
 
-#pageslide #album,
-#pageslide #album iframe {
+/* YouTube link icon */
+#pageslide .youtube-link {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+#pageslide .youtube-link:hover {
+  color: #ff0000;
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#pageslide .youtube-link:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+#pageslide .youtube-link svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+@media (prefers-color-scheme: light) {
+  #pageslide .youtube-link {
+    background: rgba(0, 0, 0, 0.08);
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  #pageslide .youtube-link:hover {
+    color: #ff0000;
+    background: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+#pageslide #album {
   display: none;
+}
+
+#pageslide #album iframe,
+#pageslide #youtube-player {
+  display: none;
+}
+
+#pageslide .player-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 12px;
+}
+
+#pageslide .player-info .playlist-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#pageslide .player-info .video-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: light) {
+  #pageslide .player-info .playlist-name {
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  #pageslide .player-info .video-name {
+    color: rgba(0, 0, 0, 0.85);
+  }
 }
 
 #pageslide .player-controls {
