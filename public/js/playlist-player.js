@@ -2,8 +2,8 @@
   let player;
   let progressInterval;
   let escHandler = null;
-  let youtubeApiReady = false;
   let youtubeApiLoading = false;
+  let youtubeApiReady = false;
   let videoTitles = {}; // Cache for video titles
 
   // Initialize YouTube API
@@ -156,7 +156,7 @@
     }
 
     // Create iframe for YouTube player (hidden)
-    albumDiv.innerHTML = `<div id="youtube-player display-none"></div>`;
+    albumDiv.innerHTML = `<div id="youtube-player" class="hidden"></div>`;
 
     try {
       player = new YT.Player("youtube-player", {
@@ -340,8 +340,8 @@
       document.removeEventListener("keydown", escHandler);
     }
     escHandler = (e) => {
-      // Only handle keys when modal is open
-      if (pageslide.classList.contains("translate-y-0")) return;
+      // Only handle keys when modal is open (not when it has translate-y-full)
+      if (pageslide.classList.contains("translate-y-full")) return;
 
       // Handle Escape key to close modal
       if (e.key === "Escape") {
@@ -400,8 +400,8 @@
 
     const content = hasSongs
       ? `<div id="album" class="hidden"></div>
-         <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" class="block m-0 p-0 w-[60px] h-[60px] min-w-[60px] min-h-[60px] shrink-0 rounded-lg object-contain " />
-         <div class="player-info flex-1 min-w-0 flex flex-col justify-center gap-1 px-3">
+         <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" class="block m-0 p-0 w-[60px] h-[60px] min-w-[60px] min-h-[60px] shrink-0 rounded object-contain " />
+         <div class="player-info flex-1 min-w-0 flex flex-col justify-center gap-1 ">
            <div class="text-xs font-medium text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">${playlist.name}</div>
            <div id="video-name" class="text-sm font-medium overflow-hidden text-ellipsis whitespace-nowrap">Loading...</div>
          </div>
