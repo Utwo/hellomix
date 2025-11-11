@@ -52,7 +52,7 @@
           "Failed to fetch playlist:",
           cleanSlug,
           "Status:",
-          response.status
+          response.status,
         );
         return null;
       }
@@ -86,7 +86,7 @@
 
     try {
       const response = await fetch(
-        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -156,7 +156,7 @@
     }
 
     // Create iframe for YouTube player (hidden)
-    albumDiv.innerHTML = `<div id="youtube-player"></div>`;
+    albumDiv.innerHTML = `<div id="youtube-player display-none"></div>`;
 
     try {
       player = new YT.Player("youtube-player", {
@@ -341,7 +341,7 @@
     }
     escHandler = (e) => {
       // Only handle keys when modal is open
-      if (!pageslide.classList.contains("show")) return;
+      if (pageslide.classList.contains("translate-y-0")) return;
 
       // Handle Escape key to close modal
       if (e.key === "Escape") {
@@ -377,9 +377,7 @@
     if (!pageslide || !modalContent) return;
 
     modalContent.innerHTML = content;
-    pageslide.style.display = "block";
-    setTimeout(() => pageslide.classList.add("show"), 10);
-    document.body.classList.add("modal-open");
+    pageslide.classList.remove("translate-y-full");
     setupCloseButton(pageslide);
     setupEscHandler(pageslide);
   }
@@ -392,27 +390,28 @@
     const albumImageUrl = `/albums/${playlist.slug}.webp`;
     const youtubeUrl = hasSongs ? getYouTubePlaylistUrl(playlist.songs) : null;
     const youtubeIcon = youtubeUrl
-      ? `<a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="youtube-link" aria-label="Open YouTube playlist" title="Open YouTube playlist">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+      ? `<a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="min-w-11 min-h-11 flex items-center justify-center cursor-pointer transition-all duration-200
+    rounded-lg hover:text-red-600 bg-neutral-200 dark:bg-neutral-800" aria-label="Open YouTube playlist" title="Open YouTube playlist">
+           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 block">
              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
            </svg>
          </a>`
       : "";
 
     const content = hasSongs
-      ? `<div id="album"></div>
-         <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" />
-         <div class="player-info">
-           <div class="playlist-name">${playlist.name}</div>
-           <div id="video-name" class="video-name">Loading...</div>
+      ? `<div id="album" class="hidden"></div>
+         <img id="ytplayer" src="${albumImageUrl}" alt="${playlist.name}" class="block m-0 p-0 w-[60px] h-[60px] min-w-[60px] min-h-[60px] shrink-0 rounded-lg object-contain " />
+         <div class="player-info flex-1 min-w-0 flex flex-col justify-center gap-1 px-3">
+           <div class="text-xs font-medium text-gray-400 overflow-hidden text-ellipsis whitespace-nowrap">${playlist.name}</div>
+           <div id="video-name" class="text-sm font-medium overflow-hidden text-ellipsis whitespace-nowrap">Loading...</div>
          </div>
-         <div class="player-controls">
-           <button class="prev" aria-label="Previous" title="Previous">
+         <div class="player-controls flex items-center shrink-0 relative">
+           <button class="prev min-w-11 min-h-11 flex items-center justify-center shrink-0 p-0 border-none text-xl font-medium  cursor-pointer transition-all duration-200 ease-in-out rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-800" aria-label="Previous" title="Previous">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
              </svg>
            </button>
-           <button class="play-pause" aria-label="Play/Pause" title="Play/Pause">
+           <button class="play-pause min-w-11 min-h-11 flex items-center justify-center shrink-0 p-0 border-none text-xl font-medium  cursor-pointer transition-all duration-200 ease-in-out rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-800" aria-label="Play/Pause" title="Play/Pause">
              <svg class="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                <path d="M8 5v14l11-7z"/>
              </svg>
@@ -420,16 +419,18 @@
                <path d="M6 4h4v16H6zm8 0h4v16h-4z"/>
              </svg>
            </button>
-           <button class="next" aria-label="Next" title="Next">
+           <button class="next min-w-11 min-h-11 flex items-center justify-center shrink-0 p-0 border-none text-xl font-medium  cursor-pointer transition-all duration-200 ease-in-out rounded-lg hover:bg-neutral-300 dark:hover:bg-neutral-800" aria-label="Next" title="Next">
              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
              </svg>
            </button>
          </div>
          ${youtubeIcon}
-         <a href="#" class="close" aria-label="Close" title="Close">×</a>`
-      : `<h3>Playlist Not Found</h3>
-         <a href="#" class="close" aria-label="Close" title="Close">×</a>`;
+         <a href="#" class="close min-w-11 min-h-11 flex items-center justify-center shrink-0 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-xl font-medium cursor-pointer transition-all duration-200 ease-in-out" aria-label="Close" title="Close">×</a>`
+      : `<div class="flex items-center justify-between w-full gap-2">
+          <h2 class="font-bold">Playlist Not Found</h2>
+          <a href="#" class="close min-w-11 min-h-11 flex items-center justify-center shrink-0 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-xl font-medium cursor-pointer transition-all duration-200 ease-in-out" aria-label="Close" title="Close">×</a>
+        </div>`;
 
     showModal(content);
 
@@ -460,14 +461,11 @@
     const { pageslide, modalContent } = getModalElements();
 
     if (pageslide) {
-      pageslide.classList.remove("show");
       setTimeout(() => {
-        pageslide.style.display = "none";
+        pageslide.classList.add("translate-y-full");
         if (modalContent) modalContent.innerHTML = "";
       }, 300);
     }
-
-    document.body.classList.remove("modal-open");
 
     if (player) {
       try {
@@ -540,7 +538,10 @@
 
   function showPlaylistNotFound() {
     showModal(
-      '<h3>Playlist Not Found</h3><a href="#" class="close" aria-label="Close" title="Close">×</a>'
+      `<div class="flex items-center justify-between w-full gap-2">
+        <h2 class="font-bold">Playlist Not Found</h2>
+        <a href="#" class="close min-w-11 min-h-11 flex items-center justify-center shrink-0 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-xl font-medium cursor-pointer transition-all duration-200 ease-in-out" aria-label="Close" title="Close">×</a>
+      </div>`,
     );
   }
 

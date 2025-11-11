@@ -3,177 +3,71 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="About - Hello mix">
-  <section class="about">
-    <div class="about-content">
-      <h1>About Hello mix</h1>
+  <section class="mx-auto max-w-2xl px-8 pb-12 text-lg leading-loose md:px-4">
+    <h1 class="mb-12 text-4xl font-bold md:mb-8">About Hello Mix</h1>
 
-      <div class="about-section">
-        <h2>A Homage to designers.mx</h2>
-        <p>
-          This website is a homage to the original <strong>designers.mx</strong>
-          website. designers.mx was a beautiful platform that curated music playlists
-          for designers, creating a space where creativity and sound intersected.
-          This project aims to capture that same spirit and bring it back to life.
-        </p>
-      </div>
+    <h2 class="mt-10 mb-5 text-xl font-bold">A Homage to designers.mx</h2>
+    <p class="mb-5">
+      This website is a homage to the original <strong class="font-semibold"
+        >designers.mx</strong
+      >
+      website. designers.mx was a beautiful platform that curated music playlists
+      for designers, creating a space where creativity and sound intersected. This
+      project aims to capture that same spirit and bring it back to life.
+    </p>
 
-      <div class="about-section">
-        <h2>Technical Details</h2>
-        <p>
-          This website is built with modern web technologies, focusing on
-          performance, simplicity, and user experience. The stack includes:
-        </p>
-        <ul>
-          <li>
-            <strong>Astro</strong> - A modern static site generator that delivers
-            lightning-fast performance with minimal JavaScript
-          </li>
-          <li>
-            <strong>Vanilla JavaScript</strong> - Clean, lightweight client-side
-            interactions without heavy frameworks
-          </li>
-          <li>
-            <strong>CSS</strong> - Modern styling with responsive design and dark/light
-            mode support
-          </li>
-          <li>
-            <strong>YouTube API</strong> - Seamless music playback integration
-          </li>
-        </ul>
-        <p>
-          The site is designed to be fast, accessible, and beautiful across all
-          devices, with a focus on the music and playlists themselves.
-        </p>
-      </div>
+    <h2 class="mt-10 mb-5 text-xl font-bold">Technical Details</h2>
+    <p class="mb-5">
+      This website is <strong class="font-semibold">open source</strong>, with
+      the complete codebase accessible on GitHub:
+      <a
+        href="https://github.com/Utwo/hellomix"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-semibold text-blue-400 underline hover:text-blue-300"
+        >https://github.com/Utwo/hellomix</a
+      >.
+    </p>
+    <p class="mb-5">
+      Built using modern web technologies, the site prioritizes performance,
+      simplicity, and a superior user experience. Our core stack includes:
+    </p>
+    <ul class="my-5 list-outside list-disc">
+      <li class="mb-4 pl-2">
+        <strong class="font-semibold">Astro</strong> - A modern static site generator
+        that delivers lightning-fast performance with minimal JavaScript
+      </li>
+      <li class="mb-4 pl-2">
+        <strong class="font-semibold text-black dark:text-white"
+          >Vanilla JavaScript</strong
+        > - Clean, lightweight client-side interactions without heavy frameworks
+      </li>
+      <li class="mb-4 pl-2">
+        <strong class="font-semibold text-black dark:text-white">CSS</strong> - Modern
+        styling with responsive design and dark/light mode support
+      </li>
+      <li class="mb-4 pl-2">
+        <strong class="font-semibold text-black dark:text-white"
+          >YouTube API</strong
+        > - Seamless music playback integration
+      </li>
+    </ul>
+    <p class="mb-5">
+      The site is designed to be fast, accessible, and beautiful across all
+      devices, with a focus on the music and playlists themselves.
+    </p>
 
-      <div class="about-section">
-        <h2>Vibe Coded</h2>
-        <p>
-          This entire website was <strong>vibe coded</strong> using AI and music.
-          Every line of code, every design decision, and every feature was crafted
-          in a flow state, guided by AI assistance and the rhythm of the playlists
-          that inspired this project.
-        </p>
-        <p>
-          The result is a website that not only pays tribute to designers.mx but
-          also embodies the creative energy and passion that music brings to the
-          design process.
-        </p>
-      </div>
-    </div>
+    <h2 class="mt-10 mb-5 text-xl font-bold">Vibe Coded</h2>
+    <p class="mb-5">
+      This entire website was <strong class="font-semibold">vibe coded</strong> using
+      AI and music. Every line of code, every design decision, and every feature
+      was crafted in a flow state, guided by AI assistance and the rhythm of the
+      playlists that inspired this project.
+    </p>
+    <p class="mb-5">
+      The result is a website that not only pays tribute to designers.mx but
+      also embodies the creative energy and passion that music brings to the
+      design process.
+    </p>
   </section>
 </Layout>
-
-<style>
-  section.about {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 2rem 4rem;
-  }
-
-  .about-content {
-    max-width: 100%;
-  }
-
-  .about-content h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0 0 3rem 0;
-    line-height: 1.2;
-  }
-
-  .about-section {
-    margin-bottom: 3rem;
-  }
-
-  .about-section h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 1rem 0;
-    line-height: 1.3;
-  }
-
-  .about-section p {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    margin: 0 0 1.25rem 0;
-  }
-
-  .about-section ul {
-    list-style: none;
-    padding: 0;
-    margin: 1.5rem 0;
-  }
-
-  .about-section li {
-    font-size: 1.1rem;
-    line-height: 1.8;
-    margin: 0 0 1rem 0;
-    padding-left: 1.5rem;
-    position: relative;
-  }
-
-  .about-section li::before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    font-weight: bold;
-  }
-
-  .about-section strong {
-    font-weight: 600;
-  }
-
-  @media (max-width: 768px) {
-    section.about {
-      padding: 0 1rem 3rem;
-    }
-
-    .about-content h1 {
-      font-size: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .about-section h2 {
-      font-size: 1.25rem;
-    }
-
-    .about-section p,
-    .about-section li {
-      font-size: 1rem;
-    }
-  }
-
-  /* Dark/Light theme based on device preferences */
-  @media (prefers-color-scheme: dark) {
-    .about-content h1,
-    .about-section h2 {
-      color: #e5e5e5 !important;
-    }
-
-    .about-section p,
-    .about-section li {
-      color: #ccc !important;
-    }
-
-    .about-section strong {
-      color: #e5e5e5 !important;
-    }
-  }
-
-  @media (prefers-color-scheme: light) {
-    .about-content h1,
-    .about-section h2 {
-      color: #1a1a1a !important;
-    }
-
-    .about-section p,
-    .about-section li {
-      color: #333 !important;
-    }
-
-    .about-section strong {
-      color: #1a1a1a !important;
-    }
-  }
-</style>

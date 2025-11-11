@@ -6,276 +6,69 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
 ---
 
 <Layout>
-  <section class="all">
-    <ul>
-      {
-        playlists.map((playlist, index) => {
-          return (
-            <li>
-              <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
-                <div class="album-image-wrapper">
-                  <img
-                    loading={index < 12 ? "eager" : "lazy"}
-                    src={`/albums/${playlist.slug}.webp`}
-                    width="400"
-                    height="400"
-                    alt={playlist.name}
-                    decoding="async"
-                    fetchpriority={index < 12 ? "high" : "low"}
-                    class="playlist-image"
-                    sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
-                  />
-                  <div
-                    class="play-button"
-                    aria-label={`Play ${playlist.name}`}
-                    title={`Play ${playlist.name}`}
-                    data-slug={playlist.slug}
+  <ul
+    class="playlist m-0 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-6 p-0 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-3 md:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] md:gap-4 xl:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] xl:gap-6"
+  >
+    {
+      playlists.map((playlist, index) => {
+        return (
+          <li class="rounded-md transition-[translate,box-shadow] duration-300 ease-in-out hover:-translate-y-1 hover:shadow-xl">
+            <a href={`/?mix=${playlist.slug}`} title={playlist.name}>
+              <div class="relative">
+                <img
+                  loading={index < 12 ? "eager" : "lazy"}
+                  src={`/albums/${playlist.slug}.webp`}
+                  width="400"
+                  height="400"
+                  alt={playlist.name}
+                  decoding="async"
+                  fetchpriority={index < 12 ? "high" : "low"}
+                  class="aspect-square rounded-md object-cover"
+                  sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, (max-width: 1200px) 220px, 250px"
+                />
+                <div
+                  class="play-button absolute top-1/2 left-1/2 flex h-13 w-13 origin-center -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-black opacity-0 shadow-2xl shadow-gray-900 transition-all duration-300 ease-in-out hover:scale-110 active:scale-95"
+                  aria-label={`Play ${playlist.name}`}
+                  title={`Play ${playlist.name}`}
+                  data-slug={playlist.slug}
+                >
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    class="h-6 w-6"
                   >
-                    <svg
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
                 </div>
-                <span class="playlist-name">{playlist.name}</span>
-              </a>
-            </li>
-          );
-        })
-      }
-    </ul>
-  </section>
+              </div>
+              <span class="block overflow-hidden pb-1 text-ellipsis whitespace-nowrap">
+                {playlist.name}
+              </span>
+            </a>
+          </li>
+        );
+      })
+    }
+  </ul>
 
   <!-- Minimal bottom player - always rendered, shown/hidden by JavaScript -->
-  <div id="pageslide" style="display: none;">
-    <div class="modal-content"></div>
+  <div
+    id="pageslide"
+    class="fixed right-0 bottom-0 left-0 z-50 h-20 w-full translate-y-full overflow-hidden border-t border-neutral-900/20 bg-neutral-100 p-0 shadow-[0_-2px_12px_rgba(255,255,255,0.1)] transition-transform duration-300 ease-in-out dark:border-neutral-50/10 dark:bg-neutral-900"
+  >
+    <div
+      class="modal-content mx-auto flex h-full max-w-[1400px] items-center gap-4 overflow-visible px-5"
+    >
+    </div>
   </div>
 </Layout>
 
 <style>
-  section.all {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 2rem 4rem;
-  }
-
-  section.all ul {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  @media (max-width: 1200px) {
-    section.all ul {
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 1.25rem;
-    }
-  }
-
-  @media (max-width: 768px) {
-    section.all ul {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 1rem;
-    }
-
-    section.all {
-      padding: 0 1rem 3rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    section.all ul {
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 0.75rem;
-    }
-  }
-
-  .all li {
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: transparent;
-    border-radius: 12px;
-    overflow: hidden;
-    transition:
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
-    animation: none;
-  }
-
-  .all li:hover {
-    transform: translateY(-4px);
-  }
-
-  .all li a {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .all li .album-image-wrapper {
-    position: relative;
-    width: 100%;
-    border-radius: 12px;
-    overflow: hidden;
-    aspect-ratio: 1 / 1;
-  }
-
-  .all li img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 12px;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-  }
-
-  .all li .play-button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.8);
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    opacity: 0;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    color: #1a1a1a;
-    padding: 0;
-    background: rgba(255, 255, 255, 0.65);
-  }
-
-  .all li:hover .play-button {
+  li:hover .play-button {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-    pointer-events: auto;
-  }
-
-  .all li .play-button:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  }
-
-  .all li .play-button:active {
-    transform: translate(-50%, -50%) scale(0.95);
-  }
-
-  .all li .play-button svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  .all li a {
-    padding-top: 0.75rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    text-align: left;
-    line-height: 1.4;
-    text-transform: none;
-  }
-
-  .all li a .playlist-name {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* Dark/Light theme based on device preferences */
-  @media (prefers-color-scheme: dark) {
-    .all li a {
-      color: #e5e5e5 !important;
-    }
-
-    .all li:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-  }
-
-  @media (prefers-color-scheme: light) {
-    .all li a {
-      color: #1a1a1a !important;
-    }
-
-    .all li:hover {
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    }
-  }
-
-  /* Lazy loading styles for playlist images - Pure CSS/HTML approach */
-  .playlist-image {
-    /* Placeholder background while loading - adapts to theme */
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.03) 0%,
-      rgba(255, 255, 255, 0.08) 50%,
-      rgba(255, 255, 255, 0.03) 100%
-    );
-    background-size: 200% 200%;
-    /* Shimmer animation for loading state */
-    animation: shimmer 2s ease-in-out infinite;
-    /* Smooth transition when image appears */
-    transition: opacity 0.4s ease-in-out;
-    object-fit: cover;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .playlist-image {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.05) 0%,
-        rgba(255, 255, 255, 0.12) 50%,
-        rgba(255, 255, 255, 0.05) 100%
-      );
-    }
-  }
-
-  /* Shimmer effect animation */
-  @keyframes shimmer {
-    0% {
-      background-position: 0% 0%;
-    }
-    50% {
-      background-position: 100% 100%;
-    }
-    100% {
-      background-position: 0% 0%;
-    }
-  }
-
-  /* When image is loaded and visible, stop shimmer and show full opacity */
-  .playlist-image:not([src=""]) {
-    animation: none;
-  }
-
-  /* Ensure images maintain aspect ratio and don't cause layout shift */
-  .all li a img {
-    display: block;
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
-  }
-
-  /* Optimize image rendering */
-  .playlist-image {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    will-change: opacity;
+    transform: scale(1);
   }
 </style>
 
@@ -300,7 +93,7 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
         window.history.pushState(
           {},
           "",
-          "/?mix=" + encodeURIComponent(randomPlaylist.slug)
+          "/?mix=" + encodeURIComponent(randomPlaylist.slug),
         );
         if (window.checkAndShowModal)
           window.checkAndShowModal(randomPlaylist.slug);
@@ -317,7 +110,7 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
             window.history.pushState(
               {},
               "",
-              "/?mix=" + encodeURIComponent(randomPlaylist.slug)
+              "/?mix=" + encodeURIComponent(randomPlaylist.slug),
             );
             if (window.checkAndShowModal)
               window.checkAndShowModal(randomPlaylist.slug);
@@ -326,18 +119,20 @@ const playlists = allPlaylistsJson.playlists.sort((a, b) => b.id - a.id);
       }
 
       // Handle playlist clicks - prevent page refresh and show modal
-      document.querySelectorAll(".all li a").forEach(function (link) {
+      document.querySelectorAll(".playlist li a").forEach(function (link) {
         link.addEventListener("click", function (event) {
           event.preventDefault();
           var href = this.getAttribute("href");
           if (href && href.includes("?mix=")) {
             var mixParam = new URL(
               href,
-              window.location.origin
+              window.location.origin,
             ).searchParams.get("mix");
             if (mixParam) {
               window.history.pushState({}, "", href);
-              if (window.checkAndShowModal) window.checkAndShowModal(mixParam);
+              // Pass true to indicate this was user-activated (click event)
+              if (window.checkAndShowModal)
+                window.checkAndShowModal(mixParam, true);
             }
           }
         });
